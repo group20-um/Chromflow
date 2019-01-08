@@ -1,14 +1,10 @@
-import org.jblas.ComplexFloat;
-import org.jblas.ComplexFloatMatrix;
-import org.jblas.Eigen;
-import org.jblas.FloatMatrix;
+import org.jblas.*;
+import org.jscience.mathematics.vector.Float64Matrix;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Stream;
 
 public class App {
     public static void main(String[] args) {
@@ -17,7 +13,7 @@ public class App {
         String fileName = args[0];
 
         System.out.println("########### READ FROM FILE ###########");
-        FloatMatrix m = null;
+        double[][] m = null;
         try {
             List<String> lines = Files.readAllLines(Paths.get(fileName));
 
@@ -26,7 +22,7 @@ public class App {
                 if(line.startsWith("VERTICES")) {
                     final int v = Integer.valueOf(line.split(" = ")[1]);
                     System.out.println(v);
-                    m = new FloatMatrix(v, v);
+                    m = new double[v][v];
                 } else if (!line.startsWith("EDGES") && !line.startsWith("//")) {
                     String[] split = line.split(" ");
 
@@ -38,7 +34,8 @@ public class App {
                     int from = Integer.parseInt(split[0]) - 1;
                     int to = Integer.parseInt(split[1]) - 1;
 
-                    m.put(from, to, 1F);
+                    m.
+                    m.put(from, to, 1F)
                 }
 
                 lineNumber++;
@@ -52,12 +49,7 @@ public class App {
         //--
 
         long time = System.currentTimeMillis();
-        ComplexFloatMatrix result = Eigen.eigenvalues(m);
-        float max = result.get(0).abs();
-        for(int i = 1; i < result.length; i++) {
-            max = Math.max(max, result.get(i).real());
-        }
-        System.out.println(max);
+        ComplexDoubleMatrix result = Eigen.eigenvalues(new DoubleMatrix(m));
         System.out.println(System.currentTimeMillis() - time);
 
     }
