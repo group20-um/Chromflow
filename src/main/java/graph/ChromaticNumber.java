@@ -11,6 +11,12 @@ import java.util.stream.Collectors;
 
 public class ChromaticNumber {
 
+    // overview >> https://thorehusfeldt.files.wordpress.com/2010/08/gca.pdf
+    // old & maybe complicated >> https://sci-hub.se/https://dl.acm.org/citation.cfm?id=321837
+    // simple overview >> https://www.ics.uci.edu/~eppstein/pubs/Epp-WADS-01-slides.pdf
+    // max independent sets >> https://www.cs.rit.edu/~ark/fall2016/654/team/11/report.pdf
+    // >> https://blogs.msdn.microsoft.com/ericlippert/tag/graph-colouring/
+
     private static ScheduledThreadPoolExecutor schedule = new ScheduledThreadPoolExecutor(4);
 
     /**
@@ -33,7 +39,8 @@ public class ChromaticNumber {
         UPPER,
         LOWER,
         EXACT,
-        EXACT_EXPERIMENTAL
+        EXACT_EXPERIMENTAL,
+        EXACT_LOW_TO_HIGH
     }
 
 
@@ -46,28 +53,28 @@ public class ChromaticNumber {
         boolean removedSmth = true;
         while (removedSmth) {
             removedSmth = false;
-            Iterator<Map.Entry<Integer, Node>> i = graph.getNodes().entrySet().iterator();
-            while (i.hasNext()) {
-                Map.Entry<Integer, Node> e = i.next();
-                Node from = e.getValue();
+            {
+                Iterator<Map.Entry<Integer, Node>> i = graph.getNodes().entrySet().iterator();
+                while (i.hasNext()) {
+                    Map.Entry<Integer, Node> e = i.next();
+                    Node from = e.getValue();
 
-                if (graph.getEdges(from.getId()).size() <= 1) {
-                    if (graph.getEdges(from.getId()).size() == 1) {
-                        int toId = graph.getEdges(from.getId()).get(0).getTo().getId();
-                        graph.getEdges(toId).removeIf(eA -> eA.getTo().getId() == from.getId());
+                    if (graph.getEdges(from.getId()).size() <= 1) {
+                        if (graph.getEdges(from.getId()).size() == 1) {
+                            int toId = graph.getEdges(from.getId()).get(0).getTo().getId();
+                            graph.getEdges(toId).removeIf(eA -> eA.getTo().getId() == from.getId());
+                        }
+                        graph.getEdges().remove(e.getValue().getId());
+                        i.remove();
+                        removedSmth = true;
                     }
-                    graph.getEdges().remove(e.getValue().getId());
-                    i.remove();
-                    removedSmth = true;
                 }
             }
         }
-        //---
-        List<Node> clique = new ArrayList<>();
-        bronKerbosch(graph, clique, new ArrayList<>(graph.getNodes().values()), new ArrayList<>());
 
 
-        System.out.printf("Debug >> Removing singles, nodes: %.2f, edges: %d ", 1D - (graph.getNodes().size() / inital_nodes), graph.getEdges().values().stream().mapToInt(List::size).sum() / 2);
+
+        System.out.printf("Debug >> Removing singles, nodes: %.8f, edges: %d%n", 1D - (graph.getNodes().size() / inital_nodes), graph.getEdges().values().stream().mapToInt(List::size).sum() / 2);
     }
 
     /**
@@ -95,6 +102,7 @@ public class ChromaticNumber {
             case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
             case UPPER: return runTimeBound ? limitedTimeUpper(graph) : new Result(null,-1, -1, upperBound(graph), true);
             case EXACT: return runTimeBound ? limitedTimeExactTest(graph) : exactTest(graph, false);
+            case EXACT_LOW_TO_HIGH: return exactTestLowToHigh(graph, false);
             case EXACT_EXPERIMENTAL: return runTimeBound ? limitedTimeExactTest(graph) : exactParallelled(graph, false);
 
         }
@@ -183,11 +191,15 @@ public class ChromaticNumber {
 
         graph.reset();
 
+        //TODO implement binary search
         if(upper == lower) {
             exact(graph, upper);
             System.out.printf("<Exact Test>>> Exact: %d%n", lower);
             return new Result(graph, upper, upper, upper, true);
         }
+
+        // TODO if graph is bipartite -> chromatic number = 2 - https://math.stackexchange.com/questions/32508/a-graph-g-is-bipartite-if-and-only-if-g-can-be-coloured-with-2-colours
+        // TODO find for 3, 4(, and maybe more)
 
         int testValue = upper - 1;
         Graph result = graph.clone();
@@ -207,6 +219,41 @@ public class ChromaticNumber {
 
 
         final int exact = testValue+1;
+        System.out.printf("<Exact Test>>  Exact: %d%n", exact);
+        return new Result(result, exact, lower, upper, true);
+    }
+
+    private static Result exactTestLowToHigh(Graph graph, boolean runTimeBound) {
+        //---
+        final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph);
+        final int lower = runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph);
+        System.out.printf("<Exact Test> Range: [%d..%d]%n", lower, upper);
+
+        graph.reset();
+
+        if(upper == lower) {
+            exact(graph, upper);
+            System.out.printf("<Exact Test>>> Exact: %d%n", lower);
+            return new Result(graph, upper, upper, upper, true);
+        }
+
+        int testValue = lower;
+        Graph result = graph.clone();
+        while(exact(graph, testValue)) {
+            System.out.printf("<Exact Test> The graph CAN be coloured with %d colours.%n", testValue);
+            result = graph.clone();
+
+            if(testValue == upper) {
+                break;
+            }
+
+            graph.reset();
+            testValue++;
+
+        }
+
+
+        final int exact = testValue;
         System.out.printf("<Exact Test>>  Exact: %d%n", exact);
         return new Result(result, exact, lower, upper, true);
     }
@@ -296,7 +343,7 @@ public class ChromaticNumber {
 
                 if (!(exactFuture.get().isInterrupted())) {
                     if (lowerBoundFuture.get() != null) {
-                        lowerBoundFuture.get().stop();
+                        lowerBoundFuture.get().interrupt();
                     }
                 }
 
@@ -317,7 +364,7 @@ public class ChromaticNumber {
                 //--- if the result is greater the upper-bound
                 // then we are done, and the result (lower-bound) is the chromatic number.
                 if (result == upperResult) {
-                    exactFuture.get().stop(); // cancel the main check to stop it from eroding our data.
+                    exactFuture.get().interrupt(); // cancel the main check to stop it from eroding our data.
 
                     while (lowerBoundFuture.get() == null) {}
 
@@ -353,7 +400,21 @@ public class ChromaticNumber {
     }
 
     private static boolean exact(Graph graph, int colours) {
-        return exact(graph, colours, graph.getNode(graph.getMinNodeId()));
+
+        // sort by degree descending
+        List<Node> nodes = graph.getNodes().values().stream().sorted(new Comparator<Node>() {
+            @Override
+            public int compare(Node o1, Node o2) {
+                return Integer.compare(graph.getEdges(o2.getId()).size(), graph.getEdges(o1.getId()).size());
+            }
+        }).collect(Collectors.toList());
+
+
+        // shuffle
+        //List<Node> nodes = new ArrayList<>(graph.getNodes().values());
+        //Collections.shuffle(nodes);
+
+        return exact(graph, colours, nodes.get(0), nodes, 0);
     }
 
     /**
@@ -363,7 +424,7 @@ public class ChromaticNumber {
      * @param node The node it starts at.
      * @return Whether or not it can be coloured in the given amount of colours.
      */
-    private static boolean exact(Graph graph, int color_nb, Node node) {
+    private static boolean exact(Graph graph, int color_nb, Node node, List<Node> nodes, int list_index) {
         //--- Are all nodes coloured? If so, we are done.
         if(graph.getNodes().values().stream().noneMatch(e -> e.getValue() == -1)) {
             return true;
@@ -374,8 +435,9 @@ public class ChromaticNumber {
             if(exactIsColourAvailable(graph, node, c)) {
                 node.setValue(c);
 
-                Node next = graph.getNextAvailableNode(node);
-                if(next == null || exact(graph, color_nb, next)) {
+                //Node next = graph.getNextAvailableNode(node);
+                Node next = nodes.get(list_index + 1);
+                if(next == null || exact(graph, color_nb, next, nodes, list_index + 1)) {
                     return true;
                 }
 
