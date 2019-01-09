@@ -16,6 +16,7 @@ public class ChromaticNumber {
     // simple overview >> https://www.ics.uci.edu/~eppstein/pubs/Epp-WADS-01-slides.pdf
     // max independent sets >> https://www.cs.rit.edu/~ark/fall2016/654/team/11/report.pdf
     // >> https://blogs.msdn.microsoft.com/ericlippert/tag/graph-colouring/
+    // Epstein overview >> https://www.ics.uci.edu/~eppstein/pubs/graph-color.html
 
     private static ScheduledThreadPoolExecutor schedule = new ScheduledThreadPoolExecutor(4);
 
