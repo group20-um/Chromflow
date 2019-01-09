@@ -26,12 +26,6 @@
             <artifactId>jblas</artifactId>
             <version>1.2.4</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.jscience</groupId>
-            <artifactId>jscience</artifactId>
-            <version>4.3.1</version>
-        </dependency>
         <dependency>
             <groupId>org.jscience</groupId>
             <artifactId>jscience</artifactId>
@@ -61,11 +55,6 @@
             <groupId>com.googlecode.efficient-java-matrix-library</groupId>
             <artifactId>ejml</artifactId>
             <version>0.25</version>
-        </dependency>
-        <dependency>
-            <groupId>gurobi.gurobi</groupId>
-            <artifactId>gurobi-win64</artifactId>
-            <version>5.5.0</version>
         </dependency>
     </dependencies>
 

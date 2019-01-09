@@ -1,24 +1,13 @@
-import cern.colt.matrix.DoubleMatrix2D;
-import cern.colt.matrix.ObjectFactory2D;
-import cern.colt.matrix.impl.DenseDoubleMatrix2D;
-import org.apache.commons.math3.linear.*;
-import org.ejml.simple.SimpleEVD;
-import org.jblas.*;
-import org.jblas.util.Logger;
-import org.jscience.JScience;
-import org.jscience.mathematics.vector.Float64Matrix;
-import org.jscience.mathematics.vector.Matrix;
-import org.ojalgo.array.Array1D;
-import org.ojalgo.matrix.PrimitiveMatrix;
-import org.ojalgo.matrix.decomposition.Eigenvalue;
-import org.ojalgo.scalar.ComplexNumber;
+import graph.ChromaticNumber;
+import org.jblas.ComplexDouble;
+import org.jblas.ComplexDoubleMatrix;
+import org.jblas.DoubleMatrix;
+import org.jblas.Eigen;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
 public class App {
     public static void main(String[] args) {
@@ -64,10 +53,15 @@ public class App {
 
         long time = System.currentTimeMillis();
         //jblas
-        ComplexDoubleMatrix result = Eigen.eigenvalues(new DoubleMatrix(m));
+        /*ComplexDoubleMatrix result = Eigen.eigenvalues(new DoubleMatrix(m));
+        double max = Integer.MIN_VALUE;
         for(ComplexDouble f : result.toArray()) {
-            System.out.println(f.abs());
+            if(f.isReal())
+                max = Math.max(max, f.abs());
+            else if(f.isImag())
+                System.out.println("a");
         }
+        System.out.println( "max>> " + max);*/
 
 
         /* apache - way too slow
@@ -100,8 +94,9 @@ public class App {
 
         //
 
+//        System.out.println(System.currentTimeMillis() - time);
 
-        System.out.println(System.currentTimeMillis() - time);
+        ChromaticNumber.compute(ChromaticNumber.Type.EXACT, args);
 
     }
 
