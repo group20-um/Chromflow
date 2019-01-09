@@ -56,7 +56,8 @@ public class TestApp {
             e.printStackTrace();
         }
 
-        System.out.println(ChromaticNumber.compute(ChromaticNumber.Type.LOWER, graph, false));
+        //ChromaticNumber.lawler(graph);
+        System.out.println(ChromaticNumber.compute(ChromaticNumber.Type.EXACT_EXPERIMENTAL, graph, false));
     }
 
 }

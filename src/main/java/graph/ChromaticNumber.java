@@ -44,6 +44,55 @@ public class ChromaticNumber {
         EXACT_LOW_TO_HIGH
     }
 
+    public static void lawler(Graph graph) {
+        List<List<Node>> independentSets = new LinkedList<>();
+        List<List<Node>> maximalIndependentSets = new LinkedList<>();
+        independentSets(graph, independentSets, maximalIndependentSets);
+
+        independentSets.sort(Comparator.comparingInt(List::size));
+
+        Map<Integer, Integer> ncolours = new HashMap<>();
+        ncolours.put(0, compute(Type.EXACT_EXPERIMENTAL, graph, false).getExact());
+
+        System.out.println();
+        for(int i = 0; i < independentSets.size(); i++) {
+
+            List<Node> S = independentSets.get(i);
+
+            graph.reset();
+            if(exact(graph, 3, S.get(0), S, 0)) {
+                ncolours.put(i, 3);
+                final int limit = S.size() / 3;
+
+
+            }
+
+        }
+
+    }
+
+    private static void independentSets(Graph graph, List<List<Node>> independentSets, List<List<Node>> maxIndependentSets) {
+        int maxSize = 0;
+        for(Node n : graph.getNodes().values()) {
+
+            List<Node> subset = new LinkedList<>(graph.getNodes().values());
+            subset.remove(n);
+            for(Node.Edge neighbour : graph.getEdges(n.getId())) {
+                subset.remove(neighbour.getTo());
+            }
+
+            independentSets.add(subset);
+
+            if(subset.size() > maxSize) {
+                maxSize = subset.size();
+                maxIndependentSets.clear();
+                maxIndependentSets.add(subset);
+            } else if(maxSize == subset.size()) {
+                maxIndependentSets.add(subset);
+            }
+        }
+
+    }
 
     private static void clean(Graph graph) {
 
@@ -284,7 +333,7 @@ public class ChromaticNumber {
         }
 
         // run the lower bound algorithm, if it is supposed to be time-limited
-        AtomicInteger lower = new AtomicInteger(0);
+        AtomicInteger lower = new AtomicInteger(basicLowerBound(graph));
         if (runTimeBound) {
             lower.set(limitedTimeLowerBound(graph).getLower());
         }
