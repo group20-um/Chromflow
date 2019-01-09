@@ -1,4 +1,3 @@
-import graph.ChromaticNumber;
 import org.jblas.ComplexDouble;
 import org.jblas.ComplexDoubleMatrix;
 import org.jblas.DoubleMatrix;
@@ -53,15 +52,10 @@ public class App {
 
         long time = System.currentTimeMillis();
         //jblas
-        /*ComplexDoubleMatrix result = Eigen.eigenvalues(new DoubleMatrix(m));
-        double max = Integer.MIN_VALUE;
+        ComplexDoubleMatrix result = Eigen.eigenvalues(new DoubleMatrix(m));
         for(ComplexDouble f : result.toArray()) {
-            if(f.isReal())
-                max = Math.max(max, f.abs());
-            else if(f.isImag())
-                System.out.println("a");
+            System.out.println(f.abs());
         }
-        System.out.println( "max>> " + max);*/
 
 
         /* apache - way too slow
@@ -94,9 +88,8 @@ public class App {
 
         //
 
-//        System.out.println(System.currentTimeMillis() - time);
 
-        ChromaticNumber.compute(ChromaticNumber.Type.EXACT, args);
+        System.out.println(System.currentTimeMillis() - time);
 
     }
 
