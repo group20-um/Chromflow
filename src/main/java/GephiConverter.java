@@ -14,6 +14,7 @@ public class GephiConverter {
 
     public static void main(String[] args) throws IOException {
 
+        args = new String[] {"src/main/java/data/block3_2018_graph16.txt"};
         String fileName = args[0];
 
         System.out.println("########### READ FROM FILE ###########");

@@ -12,6 +12,21 @@ public class TestApp {
 
 
     public static void main(String[] args) {
+        // We can solve: 1,6,8,10,11,17,19
+        // 02 -> 3 & 4 coloring algo needed
+        // 03 -> <special structure>
+        // 04 -> 4 coloring algo needed
+        // 05 -> some combination of everything... probably
+        // 07 -> no idea...
+        // 09 ->
+        // 12 -> Seems to have the same "hub"-like structure as '10'
+        // 13 ->
+        // 14 -> looks interesting in Gephi...
+        // 15 -> Clique removal should do wonders here, 3 cliques (clusters) and only a single point of connection <3
+        // 16 -> Seems to have many "hub"-like structures
+        // 18 -> Similar structure to 15
+        // 20 -> Interesting symmetrical structure
+        args[0] = "src/main/java/data/block3_2018_graph07.txt";
         Graph graph = new Graph();
         if(args.length == 0) {
             System.out.println("Debug: No file path provided!");

@@ -124,7 +124,7 @@ public class ChromaticNumber {
 
 
 
-        System.out.printf("Debug >> Removing singles, nodes: %.8f, edges: %d%n", 1D - (graph.getNodes().size() / inital_nodes), graph.getEdges().values().stream().mapToInt(List::size).sum() / 2);
+        System.out.printf("Debug >> Removing singles, nodes: %d (%.8f), edges: %d%n", graph.getNodes().size(), (1D - (graph.getNodes().size() / inital_nodes)), graph.getEdges().values().stream().mapToInt(List::size).sum() / 2);
     }
 
     /**
@@ -146,7 +146,7 @@ public class ChromaticNumber {
      */
     public static Result compute(Type type, Graph graph, boolean runTimeBound) {
         graph.reset();
-        clean(graph);
+        //clean(graph);
         switch (type) {
 
             case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
@@ -476,9 +476,17 @@ public class ChromaticNumber {
      */
     private static boolean exact(Graph graph, int color_nb, Node node, List<Node> nodes, int list_index) {
         //--- Are all nodes coloured? If so, we are done.
-        if(graph.getNodes().values().stream().noneMatch(e -> e.getValue() == -1)) {
+        /*if(graph.getNodes().values().stream().noneMatch(e -> e.getValue() == -1)) {
             return true;
-        }
+        }*/
+
+        boolean sc = true;
+        for(Node n : graph.getNodes().values())
+            if(n.getValue() == -1) {
+                sc = false;
+                break;
+            }
+        if(sc) return true;
 
         //--- Check this note for all colours
         for(int c = 1; c <= color_nb; c++) {
@@ -486,8 +494,7 @@ public class ChromaticNumber {
                 node.setValue(c);
 
                 //Node next = graph.getNextAvailableNode(node);
-                Node next = nodes.get(list_index + 1);
-                if(next == null || exact(graph, color_nb, next, nodes, list_index + 1)) {
+                if(list_index + 1 < nodes.size()  && exact(graph, color_nb,  nodes.get(list_index + 1), nodes, list_index + 1)) {
                     return true;
                 }
 
