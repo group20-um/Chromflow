@@ -1,7 +1,5 @@
-import org.jblas.ComplexDouble;
-import org.jblas.ComplexDoubleMatrix;
-import org.jblas.DoubleMatrix;
-import org.jblas.Eigen;
+
+import Jama.Matrix;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,7 +10,7 @@ public class App {
     public static void main(String[] args) {
 
         //---
-        String fileName = args[0];
+        String fileName = "src/main/java/data/block3_2018_graph15.txt";
 
         System.out.println("########### READ FROM FILE ###########");
         double[][] m = null;
@@ -52,11 +50,16 @@ public class App {
 
         long time = System.currentTimeMillis();
         //jblas
-        ComplexDoubleMatrix result = Eigen.eigenvalues(new DoubleMatrix(m));
-        for(ComplexDouble f : result.toArray()) {
-            System.out.println(f.abs());
+        Matrix matrix = new Matrix(m);
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
+        double[] eigs = matrix.eig().getRealEigenvalues();
+        for(double e : eigs) {
+            min = Math.min(e, min);
+            max = Math.max(e, max);
         }
 
+        System.out.println(">> " + Math.ceil(1 - (max / min)));
 
         /* apache - way too slow
         RealMatrix t = MatrixUtils.createRealMatrix(m);

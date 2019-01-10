@@ -1,19 +1,20 @@
-import org.jblas.FloatMatrix;
+import graph.Graph;
+import graph.Node;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 public class GephiConverter {
 
+
+
+    /*
     public static void main(String[] args) throws IOException {
 
+        args = new String[] {"src/main/java/data/block3_2018_graph12.txt"};
         String fileName = args[0];
 
         System.out.println("########### READ FROM FILE ###########");
@@ -22,14 +23,14 @@ public class GephiConverter {
             Set<Integer> nodes = new HashSet<>();
             Set<int[]> edges = new HashSet<>();
             
-            FloatMatrix m = null;
+            Matrix m = null;
 
             int lineNumber = 1;
             for (final String line : lines) {
                 if(line.startsWith("VERTICES")) {
                     final int v = Integer.valueOf(line.split(" = ")[1]);
                     System.out.println(v);
-                    m = new FloatMatrix(v, v);
+                    m = new Matrix(v, v);
                 } else if (!line.startsWith("EDGES") && !line.startsWith("//")) {
                     String[] split = line.split(" ");
 
@@ -41,7 +42,7 @@ public class GephiConverter {
                     int from = Integer.parseInt(split[0]) - 1;
                     int to = Integer.parseInt(split[1]) - 1;
 
-                    m.put(from, to, 1F);
+                    m.set(from, to, 1F);
                 }
 
                 lineNumber++;
@@ -56,9 +57,48 @@ public class GephiConverter {
         }
 
 
+    }*/
+
+    public static void generateGephiFile(Graph graph) {
+        //--- Gephi
+        try {
+
+            StringBuilder builder = new StringBuilder();
+            builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><gexf xmlns=\"http://www.gexf.net/1.2draft\" " +
+                    "xmlns:viz=\"http://www.gexf.net/1.1draft/viz\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " +
+                    "xsi:schemaLocation=\"http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd\" version=\"1.2\">" +
+                    "<graph><nodes>");
+            graph.getNodes().forEach((k, v) -> {
+                builder.append(String.format("<node id=\"%d\" label=\"glossy\"></node>",
+                        v.getId()
+                ));
+            });
+            builder.append("</nodes><edges>");
+
+            int edgeId = 0;
+            for (Map.Entry<Integer, List<Node.Edge>> entry : graph.getEdges().entrySet()) {
+                for (Node.Edge edge : entry.getValue()) {
+                    builder.append(String.format("<edge id=\"%d\" source=\"%d\" target=\"%d\" />", edgeId, edge.getFrom().getId(), edge.getTo().getId()));
+                    edgeId++;
+                }
+            }
+
+            builder.append("</edges></graph></gexf>");
+            File file = new File("src/main/java/data/gephi.gexf");
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            FileOutputStream fileOutputStream = new FileOutputStream(file);
+            fileOutputStream.write(builder.toString().getBytes(Charset.forName("UTF-8")));
+            fileOutputStream.flush();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
-    private static void generateGephiFile(FloatMatrix graph) {
+
+    /*
+    public static void generateGephiFile(FloatMatrix graph) {
         //--- Gephi
         try {
 
@@ -96,6 +136,6 @@ public class GephiConverter {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-    }
+    }*/
 
 }

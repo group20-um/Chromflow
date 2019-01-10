@@ -1,5 +1,6 @@
 package graph;
 
+
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -44,6 +45,134 @@ public class ChromaticNumber {
         EXACT_LOW_TO_HIGH
     }
 
+    //betweenness centrality in unweighted graphs
+    /*public static void betweenness(Graph g) {
+        g.getNodes().forEach((id, node) -> node.setValue(0));
+
+        for(Node v : g.getNodes().values()) {
+            Stack<Node> S = new Stack<>();
+            List<>
+        }
+    }*/
+
+    /*
+    public void betweennessCentrality(Graph graph) {
+
+        Map<Integer, Double> nodeCentrality = new HashMap<>();
+        Map<Integer, Double> edgeCentrality = new HashMap<>();
+
+        float n = graph.getNodes().size();
+        float i = 0;
+
+        for (Node s : graph.getNodes().values()) {
+            PriorityQueue<Node> S = null;
+
+            S =
+
+            // The really new things in the Brandes algorithm are here:
+            // Accumulation phase:
+
+            while (!S.isEmpty()) {
+                Node w = S.poll();
+
+                for (Node v : predecessorsOf(w)) {
+                    double c = ((sigma(v) / sigma(w)) * (1.0 + delta(w)));
+                    if(doEdges) {
+                        Edge e = w.getEdgeBetween(v);
+                        setCentrality(e, centrality(e) + c);
+                    }
+                    setDelta(v, delta(v) + c);
+                }
+                if (w != s) {
+                    setCentrality(w, centrality(w) + delta(w));
+                }
+            }
+
+            if (progress != null)
+                progress.progress(i / n);
+
+            i++;
+        }
+    }
+
+    protected PriorityQueue<Node> simpleExplore(Node source, Graph graph) {
+        LinkedList<Node> Q = new LinkedList<Node>();
+        PriorityQueue<Node> S = new PriorityQueue<Node>(graph.getNodeCount(),
+                new BrandesNodeComparatorLargerFirst());
+
+        setupAllNodes(graph);
+        Q.add(source);
+        setSigma(source, 1.0);
+        setDistance(source, 0.0);
+
+        while (!Q.isEmpty()) {
+            Node v = Q.removeFirst();
+
+            S.add(v);
+            Iterator<? extends Edge> ww = v.getLeavingEdgeIterator();
+
+            while (ww.hasNext()) {
+                Edge l = ww.next();
+                Node w = l.getOpposite(v);//ww.next();
+
+                if (distance(w) == INFINITY) {
+                    setDistance(w, distance(v) + 1);
+                    Q.add(w);
+                }
+
+                if (distance(w) == (distance(v) + 1.0)) {
+                    setSigma(w, sigma(w) + sigma(v));
+                    addToPredecessorsOf(w, v);
+                }
+            }
+        }
+
+        return S;
+    }*/
+
+    //--- dijkstra
+    public static void dijkstra(Graph graph, final int start, final int end) {
+
+        graph.getNodes().forEach((k, node) -> node.setValue(Integer.MAX_VALUE));
+        graph.getNode(start).setValue(0);
+
+        PriorityQueue<Node> vertices = new PriorityQueue<>(Comparator.comparingInt(node -> node.getValue()));
+        vertices.add(graph.getNode(start));
+
+        Map<Integer, Integer> previous = new HashMap<>();
+
+        while (!(vertices.isEmpty())) {
+
+            Node current = vertices.poll();
+
+            List<Node.Edge> edges = graph.getEdges(current.getId());
+            edges.forEach(edge -> {
+
+                Node neighbour = edge.getTo();
+                int distance = neighbour.getValue() + 1; // 1 -> constant distance because we have an unweighted graph
+                if(distance < neighbour.getValue()) {
+                    neighbour.setValue(distance);
+                    previous.put(neighbour.getId(), current.getId());
+                    vertices.add(neighbour);
+                }
+
+            });
+
+        }
+
+        // build path
+        List<Integer> path = new LinkedList<>();
+        int current = end;
+        while (previous.containsKey(current)) {
+            path.add(current);
+            current = previous.get(current);
+        }
+        Collections.reverse(path);
+
+        System.out.println(path);
+    }
+
+    //--- lawler
     public static void lawler(Graph graph) {
         List<List<Node>> independentSets = new LinkedList<>();
         List<List<Node>> maximalIndependentSets = new LinkedList<>();
@@ -124,7 +253,7 @@ public class ChromaticNumber {
 
 
 
-        System.out.printf("Debug >> Removing singles, nodes: %.8f, edges: %d%n", 1D - (graph.getNodes().size() / inital_nodes), graph.getEdges().values().stream().mapToInt(List::size).sum() / 2);
+        System.out.printf("Debug >> Removing singles, nodes: %d (%.8f), edges: %d%n", graph.getNodes().size(), (1D - (graph.getNodes().size() / inital_nodes)), graph.getEdges().values().stream().mapToInt(List::size).sum() / 2);
     }
 
     /**
@@ -150,7 +279,7 @@ public class ChromaticNumber {
         switch (type) {
 
             case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
-            case UPPER: return runTimeBound ? limitedTimeUpper(graph) : new Result(null,-1, -1, upperBound(graph), true);
+            case UPPER: return runTimeBound ? limitedTimeUpper(graph) : new Result(null,-1, -1, upperBound(graph,1), true);
             case EXACT: return runTimeBound ? limitedTimeExactTest(graph) : exactTest(graph, false);
             case EXACT_LOW_TO_HIGH: return exactTestLowToHigh(graph, false);
             case EXACT_EXPERIMENTAL: return runTimeBound ? limitedTimeExactTest(graph) : exactParallelled(graph, false);
@@ -208,7 +337,7 @@ public class ChromaticNumber {
         Result result = timeBoundMethodExecution(new MethodRunnable() {
             @Override
             public void run() {
-                Result r = new Result(null,-1, -1, upperBound(graph), true);
+                Result r = new Result(null,-1, -1, upperBound(graph,1), true);
                 this.setResult(r);
             }
         }, TIME_LIMIT_UPPER);
@@ -228,14 +357,14 @@ public class ChromaticNumber {
      */
     private static int basicLowerBound(Graph graph) {
         int tmp = graph.getEdges().entrySet().stream().mapToInt(e -> e.getValue().size()).min().getAsInt();
-        return (tmp == 1) ? 2 : tmp;
+        return Math.max(tmp,2) ;
     }
 
 
     // --- EXACT_EXPERIMENTAL SECTION ---
     private static Result exactTest(Graph graph, boolean runTimeBound) {
         //---
-        final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph);
+        final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph,1);
         final int lower = runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph);
         System.out.printf("<Exact Test> Range: [%d..%d]%n", lower, upper);
 
@@ -275,7 +404,7 @@ public class ChromaticNumber {
 
     private static Result exactTestLowToHigh(Graph graph, boolean runTimeBound) {
         //---
-        final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph);
+        final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph,1);
         final int lower = runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph);
         System.out.printf("<Exact Test> Range: [%d..%d]%n", lower, upper);
 
@@ -325,7 +454,7 @@ public class ChromaticNumber {
      */
     private static Result exactParallelled(Graph graph, boolean runTimeBound) {
         //--- the upper bound that we either find by running our upper-bound algorithm
-        final AtomicInteger upper = new AtomicInteger(runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph));
+        final AtomicInteger upper = new AtomicInteger(runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph,1));
 
         // if the upper bound algorithm fails, we cannot do anything anymore
         if (upper.get() == -1) {
@@ -476,9 +605,17 @@ public class ChromaticNumber {
      */
     private static boolean exact(Graph graph, int color_nb, Node node, List<Node> nodes, int list_index) {
         //--- Are all nodes coloured? If so, we are done.
-        if(graph.getNodes().values().stream().noneMatch(e -> e.getValue() == -1)) {
+        /*if(graph.getNodes().values().stream().noneMatch(e -> e.getValue() == -1)) {
             return true;
-        }
+        }*/
+
+        boolean sc = true;
+        for(Node n : graph.getNodes().values())
+            if(n.getValue() == -1) {
+                sc = false;
+                break;
+            }
+        if(sc) return true;
 
         //--- Check this note for all colours
         for(int c = 1; c <= color_nb; c++) {
@@ -486,8 +623,7 @@ public class ChromaticNumber {
                 node.setValue(c);
 
                 //Node next = graph.getNextAvailableNode(node);
-                Node next = nodes.get(list_index + 1);
-                if(next == null || exact(graph, color_nb, next, nodes, list_index + 1)) {
+                if(list_index + 1 < nodes.size()  && exact(graph, color_nb,  nodes.get(list_index + 1), nodes, list_index + 1)) {
                     return true;
                 }
 
@@ -521,10 +657,10 @@ public class ChromaticNumber {
     }
 
     /**
-     * Runs and returns {@link ChromaticNumber#upperBoundIterative(Graph)}.
+     * Runs and returns {@link ChromaticNumber#upperBoundIterative(Graph,int)}.
      */
-    private static int upperBound(Graph graph) {
-        return upperBoundIterative(graph);
+    private static int upperBound(Graph graph, int mode) {
+        return upperBoundIterative(graph, mode);
     }
 
     /**
@@ -533,11 +669,30 @@ public class ChromaticNumber {
      * @param graph The graph to perform the computation on.
      * @return The upper bound, the amount of colours used to colour the graph.
      */
-    private static int upperBoundIterative(Graph graph) {
-        //--- Build unvisited map ordered by degree of nodes descending
-        Stack<Node> unvisited = graph.getNodes().values().stream()
-                .sorted(Comparator.comparingInt(o -> graph.getEdges(o.getId()).size()))
-                .collect(Collectors.toCollection(Stack::new));
+    private static int upperBoundIterative(Graph graph, int mode) {
+
+        Stack<Node> unvisited = null;
+        //--- Build different unvisited maps
+        switch (mode){
+            case 1:
+                //--- map ordered by degree of nodes descending
+                unvisited = graph.getNodes().values().stream()
+                        .sorted(Comparator.comparingInt(o -> graph.getEdges(o.getId()).size()))
+                        .collect(Collectors.toCollection(Stack::new));
+                break;
+
+            case 2:
+                //--- map starting from random starting point
+                unvisited = graph.getNodes().values().stream().collect(Collectors.toCollection(Stack::new));
+                Collections.shuffle(unvisited);
+                break;
+
+            case 3:
+                //--- map with order from graph
+                unvisited = graph.getNodes().values().stream().collect(Collectors.toCollection(Stack::new));
+                break;
+        }
+
         int max = 0;
         while (!unvisited.isEmpty()){
             Node node = unvisited.pop();
@@ -578,6 +733,10 @@ public class ChromaticNumber {
 
         return max + 1;
 
+    }
+
+    public static int triplleCheck(Graph graph){
+        return Math.min(upperBound(graph,1),Math.min(upperBound(graph,2),upperBound(graph,3)));
     }
 
     //--- LOWER BOUND --
