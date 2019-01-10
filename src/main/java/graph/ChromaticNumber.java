@@ -44,6 +44,49 @@ public class ChromaticNumber {
         EXACT_LOW_TO_HIGH
     }
 
+    //--- dijkstra
+    public static void dijkstra(Graph graph, final int start, final int end) {
+
+        graph.getNodes().forEach((k, node) -> node.setValue(Integer.MAX_VALUE));
+        graph.getNode(start).setValue(0);
+
+        PriorityQueue<Node> vertices = new PriorityQueue<>(Comparator.comparingInt(node -> node.getValue()));
+        vertices.add(graph.getNode(start));
+
+        Map<Integer, Integer> previous = new HashMap<>();
+
+        while (!(vertices.isEmpty())) {
+
+            Node current = vertices.poll();
+
+            List<Node.Edge> edges = graph.getEdges(current.getId());
+            edges.forEach(edge -> {
+
+                Node neighbour = edge.getTo();
+                int distance = neighbour.getValue() + 1; // 1 -> constant distance because we have an unweighted graph
+                if(distance < neighbour.getValue()) {
+                    neighbour.setValue(distance);
+                    previous.put(neighbour.getId(), current.getId());
+                    vertices.add(neighbour);
+                }
+
+            });
+
+        }
+
+        // build path
+        List<Integer> path = new LinkedList<>();
+        int current = end;
+        while (previous.containsKey(current)) {
+            path.add(current);
+            current = previous.get(current);
+        }
+        Collections.reverse(path);
+
+        System.out.println(path);
+    }
+
+    //--- lawler
     public static void lawler(Graph graph) {
         List<List<Node>> independentSets = new LinkedList<>();
         List<List<Node>> maximalIndependentSets = new LinkedList<>();

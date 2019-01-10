@@ -12,6 +12,9 @@ public class TestApp {
 
 
     public static void main(String[] args) {
+
+        // www.cs.uu.nl/education/scripties/pdf.php?SID=INF/SCR-2009-095
+
         // We can solve: 1,6,8,10,11,17,19
         // 02 -> 3 & 4 coloring algo needed
         // 03 -> <special structure>
@@ -72,6 +75,7 @@ public class TestApp {
         }
 
         //ChromaticNumber.lawler(graph);
+        ChromaticNumber.dijkstra(graph, graph.getMinNodeId(), graph.getMaxNodeId());
         System.out.println(ChromaticNumber.compute(ChromaticNumber.Type.EXACT_EXPERIMENTAL, graph, false));
     }
 
