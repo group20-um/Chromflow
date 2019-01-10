@@ -121,11 +121,7 @@ public class TestApp {
                 while (!visit.isEmpty()) {
                     graph.Node pop = visit.pop();
                     pop.setValue(1);
-                    if(sg.addNode(pop.getId(), -1)) {
-                        System.out.println("added");
-                    } else {
-                        System.out.println("nope");
-                    }
+                    sg.addNode(pop.getId(), -1);
                     visit.addAll(graph.getEdges(pop.getId()).values().stream().filter(e -> e.getTo().getValue() == -1).map(edge -> edge.getTo()).collect(Collectors.toList()));
                 }
 
@@ -143,14 +139,20 @@ public class TestApp {
         }
 
         //---
+        // GephiConverter.generateGephiFile(graph);
 
-        GephiConverter.generateGephiFile(graph);
-        System.out.println("file");
-        for(Graph sg : subgraphs.stream().sorted(Comparator.comparingInt(o -> -o.getNodes().size())).collect(Collectors.toList())) {
-            System.out.println("_______________________________");
-            ChromaticNumber.compute(ChromaticNumber.Type.EXACT_EXPERIMENTAL, sg, false);
-            System.out.println("_______________________________");
+        ChromaticNumber.Result lR = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, graph, false);
+        ChromaticNumber.Result uR =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, graph, false);
+        System.out.printf("Original bounds: [%d..%d]%n", lR.getLower(), uR.getUpper());
+        int lower = Integer.MIN_VALUE;
+        int upper = Integer.MAX_VALUE;
+        for(Graph sg : subgraphs.stream().sorted(Comparator.comparingInt(o -> o.getNodes().size())).collect(Collectors.toList())) {
+            ChromaticNumber.Result lR_ = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, graph, false);
+            ChromaticNumber.Result uR_ =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, graph, false);
+            lower = Math.max(lower, lR_.getLower());
+            upper = Math.min(upper, uR_.getUpper());
         }
+        System.out.printf("New bounds: [%d..%d]%n", lower, upper);
 
         //ChromaticNumber.lawler(graph);
         //System.out.println(ChromaticNumber.compute(ChromaticNumber.Type.EXACT_EXPERIMENTAL, graph, false));
