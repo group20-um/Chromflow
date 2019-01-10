@@ -147,8 +147,8 @@ public class TestApp {
         int lower = Integer.MIN_VALUE;
         int upper = Integer.MAX_VALUE;
         for(Graph sg : subgraphs.stream().sorted(Comparator.comparingInt(o -> o.getNodes().size())).collect(Collectors.toList())) {
-            ChromaticNumber.Result lR_ = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, graph, false);
-            ChromaticNumber.Result uR_ =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, graph, false);
+            ChromaticNumber.Result lR_ = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, sg, false);
+            ChromaticNumber.Result uR_ =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, sg, false);
             lower = Math.max(lower, lR_.getLower());
             upper = Math.min(upper, uR_.getUpper());
         }
