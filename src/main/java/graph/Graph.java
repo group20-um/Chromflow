@@ -1,10 +1,9 @@
 package graph;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static graph.Node.*;
+import static graph.Node.Edge;
 
 public class Graph implements Cloneable {
 
@@ -15,9 +14,12 @@ public class Graph implements Cloneable {
     private int sizeCircle=0;
     public int[][] adjMatrix;
     private ArrayList<Integer> sizes=new ArrayList<>();
-    private int cnt=0;
 
     public Graph() {}
+
+    public double getDensity() {
+        return edges.values().stream().mapToInt(Map::size).sum() / Math.pow(this.nodes.size(), 2);
+    }
 
     public void reset() {
         this.nodes.values().forEach(e -> e.setValue(-1));
@@ -98,12 +100,7 @@ public class Graph implements Cloneable {
     }
 
     public boolean isColored(){
-        for(Node n : nodes.values()) {
-            if(n.getValue() == -1) {
-                return false;
-            }
-        }
-        return true;
+        return nodes.values().stream().noneMatch(n -> n.getValue() == -1);
     }
 
     public void setSizeCircle(int sizeCircle) {
@@ -132,6 +129,7 @@ public class Graph implements Cloneable {
             else if( neighbours.get(i)!= parent ){
 
                 sizeCircle++;
+                int cnt = 0;
                 sizes.add(cnt, sizeCircle);
                 return true;
             }

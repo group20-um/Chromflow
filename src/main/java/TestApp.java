@@ -143,7 +143,7 @@ public class TestApp {
 
         ChromaticNumber.Result lR = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, graph, false);
         ChromaticNumber.Result uR =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, graph, false);
-        System.out.printf("Original bounds: [%d..%d]%n", lR.getLower(), uR.getUpper());
+        System.out.printf("Original bounds: [%d..%d] Density: %.4f%n", lR.getLower(), uR.getUpper(), graph.getDensity());
         int lower = Integer.MIN_VALUE;
         int upper = Integer.MAX_VALUE;
         for(Graph sg : subgraphs.stream().sorted(Comparator.comparingInt(o -> o.getNodes().size())).collect(Collectors.toList())) {
@@ -151,6 +151,7 @@ public class TestApp {
             ChromaticNumber.Result uR_ =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, sg, false);
             lower = Math.max(lower, lR_.getLower());
             upper = Math.min(upper, uR_.getUpper());
+            System.out.println("Subgraph Density >> " + sg.getDensity());
         }
         System.out.printf("New bounds: [%d..%d]%n", lower, upper);
 

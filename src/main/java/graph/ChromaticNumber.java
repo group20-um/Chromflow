@@ -279,7 +279,7 @@ public class ChromaticNumber {
         switch (type) {
 
             case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
-            case UPPER: return runTimeBound ? limitedTimeUpper(graph) : new Result(null,-1, -1, upperBound(graph,1), true);
+            case UPPER: return runTimeBound ? limitedTimeUpper(graph) : new Result(null,-1, -1, upperBound(graph, UpperBoundMode.DEGREE_DESC), true);
             case EXACT: return runTimeBound ? limitedTimeExactTest(graph) : exactTest(graph, false);
             case EXACT_LOW_TO_HIGH: return exactTestLowToHigh(graph, false);
             case EXACT_EXPERIMENTAL: return runTimeBound ? limitedTimeExactTest(graph) : exactParallelled(graph, false);
@@ -337,7 +337,7 @@ public class ChromaticNumber {
         Result result = timeBoundMethodExecution(new MethodRunnable() {
             @Override
             public void run() {
-                Result r = new Result(null,-1, -1, upperBound(graph,1), true);
+                Result r = new Result(null,-1, -1, upperBound(graph, UpperBoundMode.DEGREE_DESC), true);
                 this.setResult(r);
             }
         }, TIME_LIMIT_UPPER);
@@ -364,7 +364,7 @@ public class ChromaticNumber {
     // --- EXACT_EXPERIMENTAL SECTION ---
     private static Result exactTest(Graph graph, boolean runTimeBound) {
         //---
-        final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph,1);
+        final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC);
         final int lower = runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph);
         System.out.printf("<Exact Test> Range: [%d..%d]%n", lower, upper);
 
@@ -404,7 +404,7 @@ public class ChromaticNumber {
 
     private static Result exactTestLowToHigh(Graph graph, boolean runTimeBound) {
         //---
-        final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph,1);
+        final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC);
         final int lower = runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph);
         System.out.printf("<Exact Test> Range: [%d..%d]%n", lower, upper);
 
@@ -454,7 +454,7 @@ public class ChromaticNumber {
      */
     private static Result exactParallelled(Graph graph, boolean runTimeBound) {
         //--- the upper bound that we either find by running our upper-bound algorithm
-        final AtomicInteger upper = new AtomicInteger(runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph,1));
+        final AtomicInteger upper = new AtomicInteger(runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC));
 
         // if the upper bound algorithm fails, we cannot do anything anymore
         if (upper.get() == -1) {
@@ -659,7 +659,7 @@ public class ChromaticNumber {
     /**
      * Runs and returns {@link ChromaticNumber#upperBoundIterative(Graph,int)}.
      */
-    private static int upperBound(Graph graph, int mode) {
+    private static int upperBound(Graph graph, UpperBoundMode mode) {
         return upperBoundIterative(graph, mode);
     }
 
@@ -669,25 +669,25 @@ public class ChromaticNumber {
      * @param graph The graph to perform the computation on.
      * @return The upper bound, the amount of colours used to colour the graph.
      */
-    private static int upperBoundIterative(Graph graph, int mode) {
+    private static int upperBoundIterative(Graph graph, UpperBoundMode upperBoundMode) {
 
         Stack<Node> unvisited = null;
         //--- Build different unvisited maps
-        switch (mode){
-            case 1:
+        switch (upperBoundMode){
+            case DEGREE_DESC:
                 //--- map ordered by degree of nodes descending
                 unvisited = graph.getNodes().values().stream()
                         .sorted(Comparator.comparingInt(o -> graph.getEdges(o.getId()).size()))
                         .collect(Collectors.toCollection(Stack::new));
                 break;
 
-            case 2:
+            case SHUFFLE:
                 //--- map starting from random starting point
                 unvisited = graph.getNodes().values().stream().collect(Collectors.toCollection(Stack::new));
                 Collections.shuffle(unvisited);
                 break;
 
-            case 3:
+            case UNORDERED:
                 //--- map with order from graph
                 unvisited = graph.getNodes().values().stream().collect(Collectors.toCollection(Stack::new));
                 break;
@@ -735,8 +735,9 @@ public class ChromaticNumber {
 
     }
 
-    public static int triplleCheck(Graph graph){
-        return Math.min(upperBound(graph,1),Math.min(upperBound(graph,2),upperBound(graph,3)));
+    //TODO remove if no longer needed
+    public static int triplleUpperBoundCheck(Graph graph){
+        return Math.min(upperBound(graph,UpperBoundMode.DEGREE_DESC),Math.min(upperBound(graph, UpperBoundMode.SHUFFLE),upperBound(graph,UpperBoundMode.UNORDERED)));
     }
 
     //--- LOWER BOUND --
