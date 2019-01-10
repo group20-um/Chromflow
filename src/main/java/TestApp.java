@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class TestApp {
@@ -81,7 +82,7 @@ public class TestApp {
         graph.getNodes().forEach((id, n) -> g.addNode(String.valueOf(id)));
         final int[] edgeId = {0};
         graph.getEdges().forEach((id, edges) -> {
-            edges.forEach(e -> {
+            edges.forEach((to, e) -> {
                 g.addEdge(String.valueOf(edgeId[0]), String.valueOf(e.getFrom().getId()), String.valueOf(e.getTo().getId()));
                 edgeId[0]++;
             });
@@ -99,16 +100,60 @@ public class TestApp {
         for(Node a : n) {
             for(Node b : n) {
                 if(a != b) {
-                    graph.getEdges(Integer.valueOf(a.getId())).removeIf(edge -> edge.getTo().getId() == Integer.valueOf(b.getId()));
+                    graph.getEdges(Integer.valueOf(a.getId())).remove(Integer.valueOf(b.getId())); // == graph.getEdges(Integer.valueOf(a.getId())).removeIf(edge -> edge.getTo().getId() == Integer.valueOf(b.getId()));
                 }
             }
         }
+        // find subgraphs
+        List<Graph> subgraphs = new LinkedList<>();
+        graph.reset();
+        for(Node a : n) {
+
+            final int node_id = Integer.parseInt(a.getId());
+
+            if(graph.getNode(node_id).getValue() == -1) {
+                Graph sg = new Graph();
+                subgraphs.add(sg);
+
+                Stack<graph.Node> visit = new Stack<>();
+                visit.add(graph.getNode(node_id));
+
+                while (!visit.isEmpty()) {
+                    graph.Node pop = visit.pop();
+                    pop.setValue(1);
+                    if(sg.addNode(pop.getId(), -1)) {
+                        System.out.println("added");
+                    } else {
+                        System.out.println("nope");
+                    }
+                    visit.addAll(graph.getEdges(pop.getId()).values().stream().filter(e -> e.getTo().getValue() == -1).map(edge -> edge.getTo()).collect(Collectors.toList()));
+                }
+
+                sg.getNodes().forEach((from_id, node_) -> {
+                    graph.getEdges(from_id).forEach((to_id, edge) -> {
+                        if(graph.hasEdge(from_id, to_id)) {
+                            sg.addEdge(from_id, to_id, true);
+                        }
+                    });
+                });
+
+            }
+
+
+        }
+
         //---
 
         GephiConverter.generateGephiFile(graph);
         System.out.println("file");
+        for(Graph sg : subgraphs.stream().sorted(Comparator.comparingInt(o -> -o.getNodes().size())).collect(Collectors.toList())) {
+            System.out.println("_______________________________");
+            ChromaticNumber.compute(ChromaticNumber.Type.EXACT_EXPERIMENTAL, sg, false);
+            System.out.println("_______________________________");
+        }
+
         //ChromaticNumber.lawler(graph);
-        System.out.println(ChromaticNumber.compute(ChromaticNumber.Type.EXACT_EXPERIMENTAL, graph, false));
+        //System.out.println(ChromaticNumber.compute(ChromaticNumber.Type.EXACT_EXPERIMENTAL, graph, false));
         //ChromaticNumber.dijkstra(graph, graph.getMinNodeId(), graph.getMaxNodeId());
         //System.out.println(ChromaticNumber.compute(ChromaticNumber.Type.EXACT_EXPERIMENTAL, graph, false));
     }

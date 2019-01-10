@@ -76,8 +76,8 @@ public class GephiConverter {
             builder.append("</nodes><edges>");
 
             int edgeId = 0;
-            for (Map.Entry<Integer, List<Node.Edge>> entry : graph.getEdges().entrySet()) {
-                for (Node.Edge edge : entry.getValue()) {
+            for (Map.Entry<Integer, Map<Integer, Node.Edge>> entry : graph.getEdges().entrySet()) {
+                for (Node.Edge edge : entry.getValue().values()) {
                     builder.append(String.format("<edge id=\"%d\" source=\"%d\" target=\"%d\" />", edgeId, edge.getFrom().getId(), edge.getTo().getId()));
                     edgeId++;
                 }

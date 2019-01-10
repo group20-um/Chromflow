@@ -145,7 +145,7 @@ public class ChromaticNumber {
 
             Node current = vertices.poll();
 
-            List<Node.Edge> edges = graph.getEdges(current.getId());
+            Collection<Node.Edge> edges = graph.getEdges(current.getId()).values();
             edges.forEach(edge -> {
 
                 Node neighbour = edge.getTo();
@@ -206,7 +206,7 @@ public class ChromaticNumber {
 
             List<Node> subset = new LinkedList<>(graph.getNodes().values());
             subset.remove(n);
-            for(Node.Edge neighbour : graph.getEdges(n.getId())) {
+            for(Node.Edge neighbour : graph.getEdges(n.getId()).values()) {
                 subset.remove(neighbour.getTo());
             }
 
@@ -226,7 +226,7 @@ public class ChromaticNumber {
     private static void clean(Graph graph) {
 
         final double inital_nodes = graph.getNodes().size();
-        final double inital_edges = (graph.getEdges().values().stream().mapToInt(List::size).sum() / 2D);
+        final double inital_edges = (graph.getEdges().values().stream().mapToInt(Map::size).sum() / 2D);
 
         // remove singles
         boolean removedSmth = true;
@@ -240,8 +240,8 @@ public class ChromaticNumber {
 
                     if (graph.getEdges(from.getId()).size() <= 1) {
                         if (graph.getEdges(from.getId()).size() == 1) {
-                            int toId = graph.getEdges(from.getId()).get(0).getTo().getId();
-                            graph.getEdges(toId).removeIf(eA -> eA.getTo().getId() == from.getId());
+                            int toId = graph.getEdges(from.getId()).values().stream().findFirst().get().getTo().getId();
+                            graph.getEdges(toId).remove(from.getId()); // == graph.getEdges(toId).removeIf(eA -> eA.getTo().getId() == from.getId());
                         }
                         graph.getEdges().remove(e.getValue().getId());
                         i.remove();
@@ -253,7 +253,7 @@ public class ChromaticNumber {
 
 
 
-        System.out.printf("Debug >> Removing singles, nodes: %d (%.8f), edges: %d%n", graph.getNodes().size(), (1D - (graph.getNodes().size() / inital_nodes)), graph.getEdges().values().stream().mapToInt(List::size).sum() / 2);
+        System.out.printf("Debug >> Removing singles, nodes: %d (%.8f), edges: %d%n", graph.getNodes().size(), (1D - (graph.getNodes().size() / inital_nodes)), graph.getEdges().values().stream().mapToInt(Map::size).sum() / 2);
     }
 
     /**
@@ -642,7 +642,7 @@ public class ChromaticNumber {
      * @return True, if the colour can be used, otherwise false.
      */
     private static boolean exactIsColourAvailable(Graph graph, Node node, int colour) {
-        return graph.getEdges(node.getId()).stream().noneMatch(e -> e.getTo().getValue() == colour);
+        return graph.getEdges(node.getId()).values().stream().noneMatch(e -> e.getTo().getValue() == colour);
     }
 
     // --- UPPER BOUND SECTION ---
@@ -653,7 +653,7 @@ public class ChromaticNumber {
      * @return The upper bound for the given graph.
      */
     private static int simpleUpperBound(Graph graph) {
-        return graph.getEdges().values().stream().mapToInt(List::size).max().getAsInt() + 1;
+        return graph.getEdges().values().stream().mapToInt(Map::size).max().getAsInt() + 1;
     }
 
     /**
@@ -698,7 +698,7 @@ public class ChromaticNumber {
             Node node = unvisited.pop();
 
             //--- What colours does its neighbours have?
-            List<Node.Edge> edges = graph.getEdges(node.getId());
+            Collection<Node.Edge> edges = graph.getEdges(node.getId()).values();
             List<Integer> colours = edges.stream()
                     .filter(edge -> edge.getTo().getValue() != -1)
                     .map(edge -> edge.getTo().getValue())
@@ -768,7 +768,7 @@ public class ChromaticNumber {
 
             //---
             Node node = nodeIterator.next();
-            List<Node> neighbours = graph.getEdges(node.getId()).stream().map(Node.Edge::getTo).collect(Collectors.toList());
+            List<Node> neighbours = graph.getEdges(node.getId()).values().stream().map(Node.Edge::getTo).collect(Collectors.toList());
 
             //---
             List<Node> dR = new ArrayList<>(_R);
