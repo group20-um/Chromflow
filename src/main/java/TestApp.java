@@ -1,5 +1,6 @@
 import graph.ChromaticNumber;
 import graph.Graph;
+import graph.RLF;
 import org.graphstream.algorithm.BetweennessCentrality;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.SingleGraph;
@@ -137,6 +138,8 @@ public class TestApp {
 
 
         }
+
+        System.out.println("RLF>> " + RLF.recursiveLargetFirst(graph));
 
         //---
         // GephiConverter.generateGephiFile(graph);

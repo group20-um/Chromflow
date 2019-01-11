@@ -17,6 +17,10 @@ public class Graph implements Cloneable {
 
     public Graph() {}
 
+    public int getDegree(int node) {
+        return this.edges.get(node).size();
+    }
+
     public double getDensity() {
         return edges.values().stream().mapToInt(Map::size).sum() / Math.pow(this.nodes.size(), 2);
     }
