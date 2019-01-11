@@ -1,6 +1,8 @@
 package graph;
 
 
+import org.apache.commons.math.random.GaussianRandomGenerator;
+
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -365,14 +367,13 @@ public class ChromaticNumber {
     private static Result exactTest(Graph graph, boolean runTimeBound) {
         //---
         final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC);
-        final int lower = runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph);
+        final int lower = 0;
         System.out.printf("<Exact Test> Range: [%d..%d]%n", lower, upper);
 
         graph.reset();
 
         //TODO implement binary search
         if(upper == lower) {
-            exact(graph, upper);
             System.out.printf("<Exact Test>>> Exact: %d%n", lower);
             return new Result(graph, upper, upper, upper, true);
         }
@@ -380,11 +381,38 @@ public class ChromaticNumber {
         // TODO if graph is bipartite -> chromatic number = 2 - https://math.stackexchange.com/questions/32508/a-graph-g-is-bipartite-if-and-only-if-g-can-be-coloured-with-2-colours
         // TODO find for 3, 4(, and maybe more)
 
+        //---
+
+        boolean exp = false;
+        List<Node> nodes = null;
+        if(exp) {
+            long time = System.currentTimeMillis();
+            nodes = graph.getNodes().values().stream().sorted(new Comparator<Node>() {
+                @Override
+                public int compare(Node o1, Node o2) {
+                    return -Integer.compare(graph.getDegree(o1.getId()), graph.getDegree(o2.getId()));
+                }
+            }).collect(Collectors.toList());
+            Collections.sort(nodes, new Comparator<Node>() {
+                @Override
+                public int compare(Node o1, Node o2) {
+                    if (graph.hasEdge(o1.getId(), o2.getId())) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                }
+            });
+            System.out.println("Time to sort>> " + (System.currentTimeMillis() - time));
+        }
+        //---
+
         int testValue = upper - 1;
         Graph result = graph.clone();
-        while(exact(graph, testValue)) {
+
+        while(exact(graph, nodes, testValue)) {
             System.out.printf("<Exact Test> The graph CAN be coloured with %d colours.%n", testValue);
-            result = graph.clone();
+            //result = graph.clone(); TODO disabled because we only needed this for the game IIRC
 
             if(testValue == lower) {
                 testValue--;
@@ -411,7 +439,6 @@ public class ChromaticNumber {
         graph.reset();
 
         if(upper == lower) {
-            exact(graph, upper);
             System.out.printf("<Exact Test>>> Exact: %d%n", lower);
             return new Result(graph, upper, upper, upper, true);
         }
@@ -579,15 +606,26 @@ public class ChromaticNumber {
     }
 
     private static boolean exact(Graph graph, int colours) {
+        return exact(graph, null, colours);
+    }
 
+    private static boolean exact(Graph graph, List<Node> nodes, int colours) {
+
+        if(colours == 1 && graph.getEdges().size() > 0) {
+            return true;
+        }
+
+        nodes = null;
         // sort by degree descending
-        List<Node> nodes = graph.getNodes().values().stream().sorted(new Comparator<Node>() {
-            @Override
-            public int compare(Node o1, Node o2) {
-                return Integer.compare(graph.getEdges(o2.getId()).size(), graph.getEdges(o1.getId()).size());
-            }
-        }).collect(Collectors.toList());
-
+        if(nodes == null) {
+            System.out.println("Exact >> Sort degree descending (default)");
+            nodes = graph.getNodes().values().stream().sorted(new Comparator<Node>() {
+                @Override
+                public int compare(Node o1, Node o2) {
+                    return -Integer.compare(graph.getEdges(o2.getId()).size(), graph.getEdges(o1.getId()).size());
+                }
+            }).collect(Collectors.toList());
+        }
 
         // shuffle
         //List<Node> nodes = new ArrayList<>(graph.getNodes().values());
@@ -622,8 +660,9 @@ public class ChromaticNumber {
             if(exactIsColourAvailable(graph, node, c)) {
                 node.setValue(c);
 
-                //Node next = graph.getNextAvailableNode(node);
-                if(list_index + 1 < nodes.size()  && exact(graph, color_nb,  nodes.get(list_index + 1), nodes, list_index + 1)) {
+                Node next = graph.getNextAvailableNode(node);
+                if(list_index + 1 >= nodes.size() || exact(graph, color_nb,  nodes.get(list_index + 1), nodes, list_index + 1)) {
+                //if(next == null || exact(graph, color_nb, next, null, -1)) {
                     return true;
                 }
 
@@ -631,6 +670,15 @@ public class ChromaticNumber {
             }
         }
 
+        return false;
+    }
+
+    private static boolean exactGreedy(Graph graph, int color_nb) {
+        for (Node n : graph.getNodes().values()) {
+            if (upperBound(graph, UpperBoundMode.DEGREE_DESC) == color_nb) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -642,7 +690,13 @@ public class ChromaticNumber {
      * @return True, if the colour can be used, otherwise false.
      */
     private static boolean exactIsColourAvailable(Graph graph, Node node, int colour) {
-        return graph.getEdges(node.getId()).values().stream().noneMatch(e -> e.getTo().getValue() == colour);
+        for(Node n : graph.getNeighbours(node)) {
+            if(n.getValue() == colour) {
+                return false;
+            }
+        }
+        return true;
+        //return graph.getEdges(node.getId()).values().stream().noneMatch(e -> e.getTo().getValue() == colour);
     }
 
     // --- UPPER BOUND SECTION ---
@@ -677,7 +731,7 @@ public class ChromaticNumber {
             case DEGREE_DESC:
                 //--- map ordered by degree of nodes descending
                 unvisited = graph.getNodes().values().stream()
-                        .sorted(Comparator.comparingInt(o -> graph.getEdges(o.getId()).size()))
+                        .sorted(Comparator.comparingInt(o -> -graph.getEdges(o.getId()).size()))
                         .collect(Collectors.toCollection(Stack::new));
                 break;
 

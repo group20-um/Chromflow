@@ -9,8 +9,10 @@ public class RLF {
     //Comparing Algos >> http://dergipark.gov.tr/download/article-file/254140 (according to the paper RLF & WP are the best
     // across all benchmarked graphs)
 
+    // friday:
+    // - https://arxiv.org/pdf/1505.05825.pdf (a lot of algos)
 
-
+    //--- NORMAL
     public static int recursiveLargetFirst(Graph graph) {
         graph.reset();
 
@@ -33,10 +35,28 @@ public class RLF {
 
         List<Node> P = graph.getNodes().values().stream().filter(e -> e.getValue() == -1).collect(Collectors.toList());
         List<Node> U = new LinkedList<>();
-        while (!P.isEmpty()) {
+        while (P.stream().anyMatch(e -> e.getValue() == -1)) {
 
-            Node max = P.stream().max((o1, o2) -> -Integer.compare(degrees.getOrDefault(o1.getId(), 0), degrees.getOrDefault(o2.getId(), 0))).get();
+            Node max = P.stream().filter(e -> e.getValue() == -1).max(new Comparator<Node>() {
+                @Override
+                public int compare(Node o1, Node o2) {
+                    return -Integer.compare(getDegree(o1), getDegree(o2));
+                }
+
+                public int getDegree(Node n) {
+                    List<Node> neighbours = graph.getNeighbours(n);
+                    int i = 0;
+                    for (Node neighbour : neighbours) {
+                        if (U.contains(neighbour)) {
+                            i++;
+                        }
+                    }
+                    return i;
+                }
+            }).get();
+            //Node max = U.stream().max((o1, o2) -> -Integer.compare(degrees.getOrDefault(o1.getId(), 0), degrees.getOrDefault(o2.getId(), 0))).get();
             max.setValue(k);
+
 
             Collection<Node.Edge> edges = graph.getEdges(max.getId()).values();
             edges.forEach(edge -> {
@@ -58,7 +78,6 @@ public class RLF {
 
 
         }
-
 
     }
 

@@ -79,11 +79,21 @@ public class Graph implements Cloneable {
 
 
     public int getMaxNodeId() {
-        return this.nodes.values().stream().max(Comparator.comparingInt(Node::getId)).get().getId();
+        int max = Integer.MIN_VALUE;
+        for(Node n : nodes.values()) {
+            max = Math.max(n.getId(), max);
+        }
+        return max;
+        //return this.nodes.values().stream().max(Comparator.comparingInt(Node::getId)).get().getId();
     }
 
     public int getMinNodeId() {
-        return this.nodes.values().stream().min(Comparator.comparingInt(Node::getId)).get().getId();
+        int min = Integer.MAX_VALUE;
+        for(Node n : nodes.values()) {
+            min = Math.min(n.getId(), min);
+        }
+        return min;
+        //return this.nodes.values().stream().min(Comparator.comparingInt(Node::getId)).get().getId();
     }
 
     public boolean hasEdge(int from, int to) {

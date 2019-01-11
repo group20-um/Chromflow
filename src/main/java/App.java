@@ -10,7 +10,7 @@ public class App {
     public static void main(String[] args) {
 
         //---
-        String fileName = "src/main/java/data/block3_2018_graph15.txt";
+        String fileName = "src/main/java/data/block3_2018_graph05.txt";
 
         System.out.println("########### READ FROM FILE ###########");
         double[][] m = null;

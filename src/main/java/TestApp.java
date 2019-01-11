@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class TestApp {
@@ -33,7 +32,7 @@ public class TestApp {
         // 16 -> Seems to have many "hub"-like structures
         // 18 -> Similar structure to 15
         // 20 -> Interesting symmetrical structure
-        args[0] = "src/main/java/data/block3_2018_graph15.txt";
+        args[0] = "src/main/java/data/block3_2018_graph05.txt";
         Graph graph = new Graph();
         if(args.length == 0) {
             System.out.println("Debug: No file path provided!");
@@ -78,85 +77,101 @@ public class TestApp {
             e.printStackTrace();
         }
 
+        System.out.println("Graph Density: " + graph.getDensity());
+
         // test
-        SingleGraph g = new SingleGraph("Test", false, true);
-        graph.getNodes().forEach((id, n) -> g.addNode(String.valueOf(id)));
-        final int[] edgeId = {0};
-        graph.getEdges().forEach((id, edges) -> {
-            edges.forEach((to, e) -> {
-                g.addEdge(String.valueOf(edgeId[0]), String.valueOf(e.getFrom().getId()), String.valueOf(e.getTo().getId()));
-                edgeId[0]++;
-            });
-        });
-        BetweennessCentrality betweennessCentrality = new BetweennessCentrality();
-        betweennessCentrality.init(g);
-        betweennessCentrality.compute();
+        boolean communities = false;
 
-        List<Node> n = g.getNodeSet().stream().sorted(new Comparator<Node>() {
-            @Override
-            public int compare(Node o1, Node o2) {
-                return -Double.compare(o1.getAttribute("Cb", Double.class), o2.getAttribute("Cb", Double.class));
-            }
-        }).limit(4).collect(Collectors.toList());
-        for(Node a : n) {
-            for(Node b : n) {
-                if(a != b) {
-                    graph.getEdges(Integer.valueOf(a.getId())).remove(Integer.valueOf(b.getId())); // == graph.getEdges(Integer.valueOf(a.getId())).removeIf(edge -> edge.getTo().getId() == Integer.valueOf(b.getId()));
-                }
-            }
-        }
-        // find subgraphs
-        List<Graph> subgraphs = new LinkedList<>();
-        graph.reset();
-        for(Node a : n) {
-
-            final int node_id = Integer.parseInt(a.getId());
-
-            if(graph.getNode(node_id).getValue() == -1) {
-                Graph sg = new Graph();
-                subgraphs.add(sg);
-
-                Stack<graph.Node> visit = new Stack<>();
-                visit.add(graph.getNode(node_id));
-
-                while (!visit.isEmpty()) {
-                    graph.Node pop = visit.pop();
-                    pop.setValue(1);
-                    sg.addNode(pop.getId(), -1);
-                    visit.addAll(graph.getEdges(pop.getId()).values().stream().filter(e -> e.getTo().getValue() == -1).map(edge -> edge.getTo()).collect(Collectors.toList()));
-                }
-
-                sg.getNodes().forEach((from_id, node_) -> {
-                    graph.getEdges(from_id).forEach((to_id, edge) -> {
-                        if(graph.hasEdge(from_id, to_id)) {
-                            sg.addEdge(from_id, to_id, true);
-                        }
-                    });
+        if(communities) {
+            SingleGraph g = new SingleGraph("Test", false, true);
+            graph.getNodes().forEach((id, n) -> g.addNode(String.valueOf(id)));
+            final int[] edgeId = {0};
+            graph.getEdges().forEach((id, edges) -> {
+                edges.forEach((to, e) -> {
+                    g.addEdge(String.valueOf(edgeId[0]), String.valueOf(e.getFrom().getId()), String.valueOf(e.getTo().getId()));
+                    edgeId[0]++;
                 });
+            });
+            BetweennessCentrality betweennessCentrality = new BetweennessCentrality();
+            betweennessCentrality.init(g);
+            betweennessCentrality.compute();
+
+            List<Node> n = g.getNodeSet().stream().sorted(new Comparator<Node>() {
+                @Override
+                public int compare(Node o1, Node o2) {
+                    return -Double.compare(o1.getAttribute("Cb", Double.class), o2.getAttribute("Cb", Double.class));
+                }
+            }).limit(4).collect(Collectors.toList());
+            for (Node a : n) {
+                for (Node b : n) {
+                    if (a != b) {
+                        graph.getEdges(Integer.valueOf(a.getId())).remove(Integer.valueOf(b.getId())); // == graph.getEdges(Integer.valueOf(a.getId())).removeIf(edge -> edge.getTo().getId() == Integer.valueOf(b.getId()));
+                    }
+                }
+            }
+            // find subgraphs
+            List<Graph> subgraphs = new LinkedList<>();
+            graph.reset();
+            for (Node a : n) {
+
+                final int node_id = Integer.parseInt(a.getId());
+
+                if (graph.getNode(node_id).getValue() == -1) {
+                    Graph sg = new Graph();
+                    subgraphs.add(sg);
+
+                    Stack<graph.Node> visit = new Stack<>();
+                    visit.add(graph.getNode(node_id));
+
+                    while (!visit.isEmpty()) {
+                        graph.Node pop = visit.pop();
+                        pop.setValue(1);
+                        sg.addNode(pop.getId(), -1);
+                        visit.addAll(graph.getEdges(pop.getId()).values().stream().filter(e -> e.getTo().getValue() == -1).map(edge -> edge.getTo()).collect(Collectors.toList()));
+                    }
+
+                    sg.getNodes().forEach((from_id, node_) -> {
+                        graph.getEdges(from_id).forEach((to_id, edge) -> {
+                            if (graph.hasEdge(from_id, to_id)) {
+                                sg.addEdge(from_id, to_id, true);
+                            }
+                        });
+                    });
+
+                }
+
 
             }
 
+            ChromaticNumber.Result lR = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, graph, false);
+            ChromaticNumber.Result uR =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, graph, false);
+            System.out.printf("Original bounds: [%d..%d] Density: %.4f%n", lR.getLower(), uR.getUpper(), graph.getDensity());
+            int lower = Integer.MIN_VALUE;
+            int upper = Integer.MAX_VALUE;
+            for(Graph sg : subgraphs.stream().sorted(Comparator.comparingInt(o -> o.getNodes().size())).collect(Collectors.toList())) {
+                ChromaticNumber.Result lR_ = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, sg, false);
+                ChromaticNumber.Result uR_ =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, sg, false);
+                lower = Math.max(lower, lR_.getLower());
+                upper = Math.min(upper, uR_.getUpper());
+                System.out.println("Subgraph Density >> " + sg.getDensity());
+            }
+            System.out.printf("New bounds: [%d..%d]%n", lower, upper);
 
         }
 
-        System.out.println("RLF>> " + RLF.recursiveLargetFirst(graph));
+        long time = System.currentTimeMillis();
+        //System.out.println("RLF>> " + RLF.recursiveLargetFirst(graph));
+        //System.out.println(System.currentTimeMillis() - time);
+        System.out.println("Result>> " + ChromaticNumber.compute(ChromaticNumber.Type.EXACT, graph, false));
+        System.out.println(System.currentTimeMillis() - time);
+
+        //System.out.println("RLF>> " + RLF.recursiveLargetFirst(graph));
+        //System.out.println(System.currentTimeMillis() - time);
+
 
         //---
         // GephiConverter.generateGephiFile(graph);
 
-        ChromaticNumber.Result lR = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, graph, false);
-        ChromaticNumber.Result uR =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, graph, false);
-        System.out.printf("Original bounds: [%d..%d] Density: %.4f%n", lR.getLower(), uR.getUpper(), graph.getDensity());
-        int lower = Integer.MIN_VALUE;
-        int upper = Integer.MAX_VALUE;
-        for(Graph sg : subgraphs.stream().sorted(Comparator.comparingInt(o -> o.getNodes().size())).collect(Collectors.toList())) {
-            ChromaticNumber.Result lR_ = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, sg, false);
-            ChromaticNumber.Result uR_ =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, sg, false);
-            lower = Math.max(lower, lR_.getLower());
-            upper = Math.min(upper, uR_.getUpper());
-            System.out.println("Subgraph Density >> " + sg.getDensity());
-        }
-        System.out.printf("New bounds: [%d..%d]%n", lower, upper);
 
         //ChromaticNumber.lawler(graph);
         //System.out.println(ChromaticNumber.compute(ChromaticNumber.Type.EXACT_EXPERIMENTAL, graph, false));
