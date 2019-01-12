@@ -11,55 +11,6 @@ import java.util.Map;
 public class GephiConverter {
 
 
-
-    /*
-    public static void main(String[] args) throws IOException {
-
-        args = new String[] {"src/main/java/data/block3_2018_graph12.txt"};
-        String fileName = args[0];
-
-        System.out.println("########### READ FROM FILE ###########");
-        try {
-            List<String> lines = Files.readAllLines(Paths.get(fileName));
-            Set<Integer> nodes = new HashSet<>();
-            Set<int[]> edges = new HashSet<>();
-            
-            Matrix m = null;
-
-            int lineNumber = 1;
-            for (final String line : lines) {
-                if(line.startsWith("VERTICES")) {
-                    final int v = Integer.valueOf(line.split(" = ")[1]);
-                    System.out.println(v);
-                    m = new Matrix(v, v);
-                } else if (!line.startsWith("EDGES") && !line.startsWith("//")) {
-                    String[] split = line.split(" ");
-
-                    //--- Error
-                    if (split.length != 2) {
-                        System.out.println(String.format("Debug %s:%d >> %s", fileName, lineNumber, String.format("Malformed edge line: %s", line)));
-                    }
-
-                    int from = Integer.parseInt(split[0]) - 1;
-                    int to = Integer.parseInt(split[1]) - 1;
-
-                    m.set(from, to, 1F);
-                }
-
-                lineNumber++;
-            }
-
-            generateGephiFile(m);
-
-        } catch (IOException e) {
-            System.out.println(String.format("Debug %s:-1 >> %s", fileName, String.format("The file could not (!) be read. (%s)", e.getMessage())));
-            e.printStackTrace();
-            System.exit(0);
-        }
-
-
-    }*/
-
     public static void generateGephiFile(Graph graph) {
         //--- Gephi
         try {
@@ -68,7 +19,7 @@ public class GephiConverter {
             builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><gexf xmlns=\"http://www.gexf.net/1.2draft\" " +
                     "xmlns:viz=\"http://www.gexf.net/1.1draft/viz\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " +
                     "xsi:schemaLocation=\"http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd\" version=\"1.2\">" +
-                    "<edu.group20.chromflow.graph><nodes>");
+                    "<graph><nodes>");
             graph.getNodes().forEach((k, v) -> {
                 builder.append(String.format("<node id=\"%d\" label=\"glossy\"></node>",
                         v.getId()
@@ -84,7 +35,7 @@ public class GephiConverter {
                 }
             }
 
-            builder.append("</edges></edu.group20.chromflow.graph></gexf>");
+            builder.append("</edges></graph></gexf>");
             File file = new File("src/main/java/data/gephi.gexf");
             if (!file.exists()) {
                 file.createNewFile();

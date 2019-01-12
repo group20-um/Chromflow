@@ -373,7 +373,7 @@ public class ChromaticNumber {
             TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
             TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
             return new Result(graph, upper, upper, upper, true);
-        } else if(lower * 2 < upper) {
+        }/* else if(lower * 2 < upper) {
             graph.reset();
             lower = Math.max(lower, runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph));
 
@@ -385,7 +385,7 @@ public class ChromaticNumber {
                 TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
                 return new Result(graph, upper, upper, upper, true);
             }
-        }
+        }*/
 
         graph.reset();
 
@@ -395,9 +395,25 @@ public class ChromaticNumber {
         //---
 
         boolean exp = true;
-        List<Node> nodes = null;
+        LinkedList<Node> nodes = new LinkedList<>(graph.getNodes().values());
+        Quicksort.sort(nodes, new Comparator<Node>() {
+            @Override
+            public int compare(Node o1, Node o2) {
+                return -Integer.compare(graph.getDegree(o1.getId()), graph.getDegree(o2.getId()));
+            }
+        });
         if(exp) {
             long time = System.currentTimeMillis();
+            Quicksort.sort(nodes, (o1, o2) -> {
+                if(o1 == o2) return 0;
+
+                if (graph.hasEdge(o1.getId(), o2.getId())) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            });
+            /*
             nodes = graph.getNodes().values().stream().sorted(new Comparator<Node>() {
                 @Override
                 public int compare(Node o1, Node o2) {
@@ -413,16 +429,10 @@ public class ChromaticNumber {
                         return 1;
                     }
                 }
-            });
+            });*/
             TestApp.debugln("Time to sort>> " + (System.currentTimeMillis() - time));
         } else {
             TestApp.debugln("Exact >> Sort degree descending (default)");
-            nodes = graph.getNodes().values().stream().sorted(new Comparator<Node>() {
-                @Override
-                public int compare(Node o1, Node o2) {
-                    return -Integer.compare(graph.getEdges(o2.getId()).size(), graph.getEdges(o1.getId()).size());
-                }
-            }).collect(Collectors.toList());
         }
         //---
 
