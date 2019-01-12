@@ -1,9 +1,9 @@
-package graph;
+package edu.group20.chromflow.graph;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static graph.Node.Edge;
+import static edu.group20.chromflow.graph.Node.Edge;
 
 public class Graph implements Cloneable {
 
@@ -37,6 +37,9 @@ public class Graph implements Cloneable {
     }
 
     public void addEdge(int from, int to, boolean bidirectional) {
+
+        if(bidirectional && hasEdge(from, to)) return;
+
         if(!(this.edges.containsKey(from))) {
             this.edges.put(from, new HashMap<>());
         }
@@ -97,6 +100,10 @@ public class Graph implements Cloneable {
 
     public boolean hasEdge(int from, int to) {
         return this.edges.containsKey(from) && this.edges.get(from).containsKey(to);
+    }
+
+    public boolean hasNode(int node) {
+        return this.nodes.containsKey(node);
     }
 
     @Override
@@ -330,4 +337,5 @@ public class Graph implements Cloneable {
 
         return adjacentMatrix;
     }
+
 }

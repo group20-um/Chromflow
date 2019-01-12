@@ -1,4 +1,4 @@
-package graph;
+package edu.group20.chromflow.graph;
 
 public class Node {
 

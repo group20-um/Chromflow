@@ -1,17 +1,16 @@
-import graph.ChromaticNumber;
-import graph.Graph;
-import graph.RLF;
-import org.graphstream.algorithm.BetweennessCentrality;
-import org.graphstream.graph.Node;
-import org.graphstream.graph.implementations.SingleGraph;
+package edu.group20.chromflow;
+
+import edu.group20.chromflow.graph.ChromaticNumber;
+import edu.group20.chromflow.graph.Graph;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
 
 public class TestApp {
+
+    public final static boolean KELK_MODE = false;
 
 
     public static void main(String[] args) {
@@ -44,57 +43,85 @@ public class TestApp {
         // 18 -> [10..13] -> 10
         // 19 -> [11..13] -> 11
         // 20 -> [8..9]
-        args = new String[] {"src/main/java/data/block3_2018_graph05.txt"};
+        //args = new String[] {"src/main/java/data/block3_2018_graph05.txt"};
         Graph graph = new Graph();
 
         String fileName = args[0];
-        System.out.println("########### READ FROM FILE ###########");
-        try {
-            List<String> lines = Files.readAllLines(Paths.get(fileName));
-            Set<Integer> nodes = new HashSet<>();
-            Set<int[]> edges = new HashSet<>();
 
-            int lineNumber = 1;
-            for (final String line : lines) {
-                if (!line.startsWith("VERTICES") && !line.startsWith("EDGES") && !line.startsWith("//")) {
+         try {
+            long time = System.currentTimeMillis();
+            List<String> lines = Files.readAllLines(Paths.get(fileName));
+
+            debugln("ReadAllLines >> " + (System.currentTimeMillis() - time));
+
+            time = System.currentTimeMillis();
+
+            lines.stream().filter(e -> !(e.startsWith("VERTICES") || e.startsWith("EDGES") || e.startsWith("//")))
+                    .forEach(line -> {
                     String[] split = line.split(" ");
 
                     //--- Error
                     if (split.length != 2) {
-                        System.out.println(String.format("Debug %s:%d >> %s", fileName, lineNumber, String.format("Malformed edge line: %s", line)));
+                        debugln(String.format("Debug %s >> %s", fileName, String.format("Malformed edge line: %s", line)));
                     }
 
                     int from = Integer.parseInt(split[0]);
                     int to = Integer.parseInt(split[1]);
-                    nodes.add(from);
-                    nodes.add(to);
-                    edges.add(new int[]{from, to});
-                }
 
-                lineNumber++;
-            }
+                    if (!graph.hasNode(from)) {
+                        graph.addNode(from, -1);
+                    }
 
-            nodes.forEach(id -> graph.addNode(id, -1));
-            edges.forEach(edge -> graph.addEdge(edge[0], edge[1], true));
+                    if (!graph.hasNode(to)) {
+                        graph.addNode(to, -1);
+                    }
 
-            System.out.printf("Debug: Graph (%s) parsed with %d vertices and %d edges.%n", fileName, nodes.size(), edges.size());
+                    graph.addEdge(from, to, true);
+
+            });
+
+            debugln("Build Graph [1] >> " + (System.currentTimeMillis() - time));
+            debug("Debug: Graph (%s) parsed with %d vertices and %d edges.%n", fileName, graph.getNodes().size(), graph.getEdges().size() / 2);
 
         } catch (IOException e) {
-            System.out.println(String.format("Debug %s:-1 >> %s", fileName, String.format("The file could not (!) be read. (%s)", e.getMessage())));
+            debug("Debug %s:-1 >> %s%n", fileName, String.format("The file could not (!) be read. (%s)", e.getMessage()));
             System.exit(0);
             e.printStackTrace();
         }
 
-        System.out.println("Graph Density: " + graph.getDensity());
+        debug("Graph Density: %.6f%%%n", graph.getDensity() * 100);
+
+        long time = System.currentTimeMillis();
+        debugln("Result>> " + ChromaticNumber.compute(ChromaticNumber.Type.EXACT, graph, false));
+        debug("Result>> %dms", System.currentTimeMillis() - time);
+
+    }
+
+    public static void debug(String format, Object... vars) {
+         if(!KELK_MODE) System.out.printf(format, vars);
+    }
+
+    public static void debugln(String message) {
+        if(!KELK_MODE) System.out.printf("%s%n", message);
+    }
+
+
+
+    public static void kelkOutput(String format, Object... vars) {
+        if(KELK_MODE) System.out.printf(format, vars);
+    }
+
+    /*
+
 
         // test
         boolean communities = false;
 
         if(communities) {
             SingleGraph g = new SingleGraph("Test", false, true);
-            graph.getNodes().forEach((id, n) -> g.addNode(String.valueOf(id)));
+            edu.group20.chromflow.graph.getNodes().forEach((id, n) -> g.addNode(String.valueOf(id)));
             final int[] edgeId = {0};
-            graph.getEdges().forEach((id, edges) -> {
+            edu.group20.chromflow.graph.getEdges().forEach((id, edges) -> {
                 edges.forEach((to, e) -> {
                     g.addEdge(String.valueOf(edgeId[0]), String.valueOf(e.getFrom().getId()), String.valueOf(e.getTo().getId()));
                     edgeId[0]++;
@@ -113,34 +140,34 @@ public class TestApp {
             for (Node a : n) {
                 for (Node b : n) {
                     if (a != b) {
-                        graph.getEdges(Integer.valueOf(a.getId())).remove(Integer.valueOf(b.getId())); // == graph.getEdges(Integer.valueOf(a.getId())).removeIf(edge -> edge.getTo().getId() == Integer.valueOf(b.getId()));
+                        edu.group20.chromflow.graph.getEdges(Integer.valueOf(a.getId())).remove(Integer.valueOf(b.getId())); // == edu.group20.chromflow.graph.getEdges(Integer.valueOf(a.getId())).removeIf(edge -> edge.getTo().getId() == Integer.valueOf(b.getId()));
                     }
                 }
             }
             // find subgraphs
             List<Graph> subgraphs = new LinkedList<>();
-            graph.reset();
+            edu.group20.chromflow.graph.reset();
             for (Node a : n) {
 
                 final int node_id = Integer.parseInt(a.getId());
 
-                if (graph.getNode(node_id).getValue() == -1) {
+                if (edu.group20.chromflow.graph.getNode(node_id).getValue() == -1) {
                     Graph sg = new Graph();
                     subgraphs.add(sg);
 
-                    Stack<graph.Node> visit = new Stack<>();
-                    visit.add(graph.getNode(node_id));
+                    Stack<edu.group20.chromflow.Node0.chromflow.graph.Node> visit = new Stack<>();
+                    visit.add(edu.group20.chromflow.graph.getNode(node_id));
 
                     while (!visit.isEmpty()) {
-                        graph.Node pop = visit.pop();
+                        edu.group20.chromflow.graphroup20.chromflow.Node pop = visit.pop();
                         pop.setValue(1);
                         sg.addNode(pop.getId(), -1);
-                        visit.addAll(graph.getEdges(pop.getId()).values().stream().filter(e -> e.getTo().getValue() == -1).map(edge -> edge.getTo()).collect(Collectors.toList()));
+                        visit.addAll(edu.group20.chromflow.graph.getEdges(pop.getId()).values().stream().filter(e -> e.getTo().getValue() == -1).map(edge -> edge.getTo()).collect(Collectors.toList()));
                     }
 
                     sg.getNodes().forEach((from_id, node_) -> {
-                        graph.getEdges(from_id).forEach((to_id, edge) -> {
-                            if (graph.hasEdge(from_id, to_id)) {
+                        edu.group20.chromflow.graph.getEdges(from_id).forEach((to_id, edge) -> {
+                            if (edu.group20.chromflow.graph.hasEdge(from_id, to_id)) {
                                 sg.addEdge(from_id, to_id, true);
                             }
                         });
@@ -151,9 +178,9 @@ public class TestApp {
 
             }
 
-            ChromaticNumber.Result lR = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, graph, false);
-            ChromaticNumber.Result uR =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, graph, false);
-            System.out.printf("Original bounds: [%d..%d] Density: %.4f%n", lR.getLower(), uR.getUpper(), graph.getDensity());
+            ChromaticNumber.Result lR = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, edu.group20.chromflow.graph, false);
+            ChromaticNumber.Result uR =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, edu.group20.chromflow.graph, false);
+            System.out.printf("Original bounds: [%d..%d] Density: %.4f%n", lR.getLower(), uR.getUpper(), edu.group20.chromflow.graph.getDensity());
             int lower = Integer.MIN_VALUE;
             int upper = Integer.MAX_VALUE;
             for(Graph sg : subgraphs.stream().sorted(Comparator.comparingInt(o -> o.getNodes().size())).collect(Collectors.toList())) {
@@ -164,24 +191,7 @@ public class TestApp {
 
         }
 
-        long time = System.currentTimeMillis();
-        //System.out.println("RLF>> " + RLF.recursiveLargetFirst(graph));
-        //System.out.println(System.currentTimeMillis() - time);
-        System.out.println("Result>> " + ChromaticNumber.compute(ChromaticNumber.Type.EXACT, graph, false));
-        System.out.println(System.currentTimeMillis() - time);
 
-        //System.out.println("RLF>> " + RLF.recursiveLargetFirst(graph));
-        //System.out.println(System.currentTimeMillis() - time);
-
-
-        //---
-        // GephiConverter.generateGephiFile(graph);
-
-
-        //ChromaticNumber.lawler(graph);
-        //System.out.println(ChromaticNumber.compute(ChromaticNumber.Type.EXACT_EXPERIMENTAL, graph, false));
-        //ChromaticNumber.dijkstra(graph, graph.getMinNodeId(), graph.getMaxNodeId());
-        //System.out.println(ChromaticNumber.compute(ChromaticNumber.Type.EXACT_EXPERIMENTAL, graph, false));
-    }
+     */
 
 }

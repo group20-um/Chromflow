@@ -1,15 +1,13 @@
-package graph;
+package edu.group20.chromflow.graph;
 
 import Jama.Matrix;
+import edu.group20.chromflow.TestApp;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ChromaticNumber {
@@ -24,12 +22,6 @@ public class ChromaticNumber {
     private static ScheduledThreadPoolExecutor schedule = new ScheduledThreadPoolExecutor(4);
 
     /**
-     * If this flag is set to true then this class will print useful messages that help the developer to debug
-     * issues, if required.
-     */
-    public static boolean DEBUG_FLAG = true;
-
-    /**
      * The time limits for the different modes.
      */
     public final static long TIME_LIMIT_EXACT = TimeUnit.SECONDS.toNanos(60);
@@ -42,9 +34,7 @@ public class ChromaticNumber {
     public enum Type {
         UPPER,
         LOWER,
-        EXACT,
-        EXACT_EXPERIMENTAL,
-        EXACT_LOW_TO_HIGH
+        EXACT
     }
 
     //betweenness centrality in unweighted graphs
@@ -97,12 +87,12 @@ public class ChromaticNumber {
         }
     }
 
-    protected PriorityQueue<Node> simpleExplore(Node source, Graph graph) {
+    protected PriorityQueue<Node> simpleExplore(Node source, Graph edu.group20.chromflow.graph) {
         LinkedList<Node> Q = new LinkedList<Node>();
         PriorityQueue<Node> S = new PriorityQueue<Node>(graph.getNodeCount(),
                 new BrandesNodeComparatorLargerFirst());
 
-        setupAllNodes(graph);
+        setupAllNodes(edu.group20.chromflow.graph);
         Q.add(source);
         setSigma(source, 1.0);
         setDistance(source, 0.0);
@@ -171,7 +161,7 @@ public class ChromaticNumber {
         }
         Collections.reverse(path);
 
-        System.out.println(path);
+        TestApp.debug("Dijkstra Path %d to %d is: ", start, end, path);
     }
 
     //--- lawler
@@ -183,9 +173,8 @@ public class ChromaticNumber {
         independentSets.sort(Comparator.comparingInt(List::size));
 
         Map<Integer, Integer> ncolours = new HashMap<>();
-        ncolours.put(0, compute(Type.EXACT_EXPERIMENTAL, graph, false).getExact());
+        ncolours.put(0, compute(Type.EXACT, graph, false).getExact());
 
-        System.out.println();
         for(int i = 0; i < independentSets.size(); i++) {
 
             List<Node> S = independentSets.get(i);
@@ -251,7 +240,7 @@ public class ChromaticNumber {
 
         }
 
-        System.out.printf("Debug (%dms) >> Removing singles, nodes: %d (%.6f%%), edges: %d (%.6f%%), density: %.2f%% (%.2f%%) %n",
+        TestApp.debug("Debug (%dms) >> Removing singles, nodes: %d (%.6f%%), edges: %d (%.6f%%), density: %.2f%% (%.2f%%) %n",
                 (System.currentTimeMillis() - time),
                 graph.getNodes().size(),
                 (1D - (graph.getNodes().size() / inital_nodes)) * 100,
@@ -287,8 +276,6 @@ public class ChromaticNumber {
             case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
             case UPPER: return runTimeBound ? limitedTimeUpper(graph) : new Result(null,-1, -1, upperBound(graph, UpperBoundMode.DEGREE_DESC), true);
             case EXACT: return runTimeBound ? limitedTimeExactTest(graph) : exactTest(graph, false);
-            case EXACT_LOW_TO_HIGH: return exactTestLowToHigh(graph, false);
-            case EXACT_EXPERIMENTAL: return runTimeBound ? limitedTimeExactTest(graph) : exactParallelled(graph, false);
 
         }
         throw new IllegalStateException();
@@ -372,27 +359,33 @@ public class ChromaticNumber {
         //---
         graph.reset();
         final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC);
-        final int lower =  TestLowerBound.search(graph); //simpleUpperBound(graph);
+        TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", upper);
+        int lower =  TestLowerBound.search(graph); //simpleUpperBound(graph);
+        TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
         /*if(lower > upper) {
             lower = 1;
         }*/
 
-        System.out.printf("<Exact Test> Range: [%d..%d]%n", lower, upper);
+        TestApp.debug("<Exact Test> Range: [%d..%d]%n", lower, upper);
 
         if(upper == lower) {
-            System.out.printf("<Exact Test>>> Exact: %d%n", lower);
+            TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
+            TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
             return new Result(graph, upper, upper, upper, true);
-        }/* else {
+        } else if(lower * 2 < upper) {
             graph.reset();
             lower = Math.max(lower, runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph));
-            System.out.printf("<Exact Test> Improved Range: [%d..%d]%n", lower, upper);
+
+            TestApp.debug("<Exact Test> Improved Range: [%d..%d]%n", lower, upper);
+            TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
             if(upper == lower) {
-                System.out.printf("<Exact Test>>> Exact: %d%n", lower);
+                TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
+                TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
                 return new Result(graph, upper, upper, upper, true);
             }
-        }*/
+        }
 
         graph.reset();
 
@@ -415,15 +408,15 @@ public class ChromaticNumber {
                 @Override
                 public int compare(Node o1, Node o2) {
                     if (graph.hasEdge(o1.getId(), o2.getId())) {
-                        return 0; //TODO get this to be -1
+                        return 0; //TODO get thiws to be -1
                     } else {
                         return 1;
                     }
                 }
             });
-            System.out.println("Time to sort>> " + (System.currentTimeMillis() - time));
+            TestApp.debugln("Time to sort>> " + (System.currentTimeMillis() - time));
         } else {
-            System.out.println("Exact >> Sort degree descending (default)");
+            TestApp.debugln("Exact >> Sort degree descending (default)");
             nodes = graph.getNodes().values().stream().sorted(new Comparator<Node>() {
                 @Override
                 public int compare(Node o1, Node o2) {
@@ -437,8 +430,8 @@ public class ChromaticNumber {
         Graph result = graph.clone();
 
         while(exact(graph, nodes, testValue)) {
-            System.out.printf("<Exact Test> The graph CAN be coloured with %d colours.%n", testValue);
-            //result = graph.clone(); TODO disabled because we only needed this for the game IIRC
+            TestApp.debug("<Exact Test> The graph CAN be coloured with %d colours.%n", testValue);
+            TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", testValue);
 
             if(testValue == lower) {
                 testValue--;
@@ -452,7 +445,10 @@ public class ChromaticNumber {
 
 
         final int exact = testValue+1;
-        System.out.printf("<Exact Test>>  Exact: %d%n", exact);
+
+        TestApp.debug("<Exact Test>>  Exact: %d%n", exact);
+        TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", exact);
+
         return new Result(result, exact, lower, upper, true);
     }
 
@@ -472,185 +468,6 @@ public class ChromaticNumber {
         return new Result(null, 0, (int) Math.ceil(1 - max / min), 0, false);
     }
 
-    private static Result exactTestLowToHigh(Graph graph, boolean runTimeBound) {
-        //---
-        final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC);
-        final int lower = runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph);
-        System.out.printf("<Exact Test> Range: [%d..%d]%n", lower, upper);
-
-        graph.reset();
-
-        if(upper == lower) {
-            System.out.printf("<Exact Test>>> Exact: %d%n", lower);
-            return new Result(graph, upper, upper, upper, true);
-        }
-
-        int testValue = lower;
-        Graph result = graph.clone();
-        while(exact(graph, testValue)) {
-            System.out.printf("<Exact Test> The graph CAN be coloured with %d colours.%n", testValue);
-            result = graph.clone();
-
-            if(testValue == upper) {
-                break;
-            }
-
-            graph.reset();
-            testValue++;
-
-        }
-
-
-        final int exact = testValue;
-        System.out.printf("<Exact Test>>  Exact: %d%n", exact);
-        return new Result(result, exact, lower, upper, true);
-    }
-
-    /**
-     * This code is experimental and still has a couple of problems with race-conditions therefore it is currently not
-     * usable in an non-experimental environment. - This code uses the property of our current exact chromatic number test,
-     * we always start at the upper-bound and work our way down to the lower-bound. This means that we actually only need
-     * the upper-bound to start any meaningful tests, so we only compute the upper-bound and then start both the exact-tests
-     * and lower-bound at the same time.
-     *  - If the lower-bound is greater finishes, and it is equal to the upper bound -> then we are done and just cancel the current
-     *  test and return the upper/lower bound because they are the exact chromatic number.
-     *  - If the lower-bound is less then the current value we test then we at last know now when to stop.
-     * This is beneficial because the lower-bound takes up a significant amount of computational time, even though it
-     * does not yield any information that is crucial to running the exact tests.
-     * @param graph The graph to perform the computation on.
-     * @param runTimeBound Whether or not to time limit the execution of the upper & lower bound.
-     * @return Never null, the results of the computations.
-     */
-    private static Result exactParallelled(Graph graph, boolean runTimeBound) {
-        //--- the upper bound that we either find by running our upper-bound algorithm
-        final AtomicInteger upper = new AtomicInteger(runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC));
-
-        // if the upper bound algorithm fails, we cannot do anything anymore
-        if (upper.get() == -1) {
-            return new Result(null, -1, -1, -1, true);
-        }
-
-        // run the lower bound algorithm, if it is supposed to be time-limited
-        AtomicInteger lower = new AtomicInteger(basicLowerBound(graph));
-        if (runTimeBound) {
-            lower.set(limitedTimeLowerBound(graph).getLower());
-        }
-
-        //--- the current range of values we are expecting to inspect
-        final int upperResult = upper.get();
-        final int lowerResult = lower.get();
-        if (DEBUG_FLAG)
-            System.out.printf("<Exact Test: %d> Range: [%d..%d]%n", graph.hashCode(), lowerResult, upperResult);
-
-        //--- if the bounds are equal then this is the chromatic number
-        if (upperResult == lowerResult) {
-            return new Result(graph, lowerResult, lowerResult, upperResult, true);
-        }
-
-        //--- we do start testing upperBound-1 because we know for sure that upper-bound itself is going to work, so
-        // testing it is a waste of resources.
-        AtomicInteger testValue = new AtomicInteger(upper.get());
-        testValue.addAndGet(-1);
-        graph.reset();
-
-        AtomicReference<Graph> colouredGraph = new AtomicReference<>();
-
-        //--- Run the exact test async, so we can run the lower-bound algorithm in parallel
-        final AtomicReference<Thread> exactFuture = new AtomicReference<>();
-        final AtomicReference<Thread> lowerBoundFuture = new AtomicReference<>();
-
-        {
-            Thread t = new Thread(() -> {
-
-                while (exactFuture.get() == null) {
-                }
-
-                while (!exactFuture.get().isInterrupted() && exact(graph, testValue.get())) {
-                    if (DEBUG_FLAG)
-                        System.out.printf("<Exact Test: %d> The graph CAN be coloured with %d colours.%n", graph.hashCode(), testValue.get());
-                    colouredGraph.set(graph.clone());
-                    graph.reset();
-
-                    if (testValue.get() == lower.get()) {
-                        if (!exactFuture.get().isInterrupted()) {
-                            testValue.addAndGet(-1);
-                        }
-                        break;
-                    }
-                    // TODO cleanup
-                    else if (testValue.get() < lower.get()) {
-                        if (!exactFuture.get().isInterrupted()) {
-                            testValue.set(lower.get() - 1);
-                        }
-                        break;
-                    }
-                    testValue.addAndGet(-1);
-                }
-
-                while (lowerBoundFuture.get() == null) { }
-
-                if (!(exactFuture.get().isInterrupted())) {
-                    if (lowerBoundFuture.get() != null) {
-                        lowerBoundFuture.get().interrupt();
-                    }
-                }
-
-            });
-            exactFuture.set(t);
-            t.start();
-        }
-
-        //--- run the lower-bound algorithm async at the same time as the exact tests are going on
-        if(!(runTimeBound)) {
-            Thread t = new Thread(() -> {
-                final int result = lowerBound(graph);
-
-                lower.set(result);
-                if(DEBUG_FLAG) System.out.printf("<Exact Test: %d> Updated lower bound: %d%n", graph.hashCode(), lower.get());
-                if(DEBUG_FLAG) System.out.printf("<Exact Test: %d> Range: [%d..%d]%n", graph.hashCode(), lower.get(), upperResult);
-
-                //--- if the result is greater the upper-bound
-                // then we are done, and the result (lower-bound) is the chromatic number.
-                if (result == upperResult) {
-                    exactFuture.get().interrupt(); // cancel the main check to stop it from eroding our data.
-
-                    while (lowerBoundFuture.get() == null) {}
-
-                    if (!lowerBoundFuture.get().isInterrupted()) {
-                        testValue.set(result - 1); // set result
-                        if(DEBUG_FLAG) System.out.printf("<Exact Test: %d> Exact: %d (determined by lower-bound async execution)%n", graph.hashCode(), (testValue.get() + 1));
-                    }
-                }
-            });
-            lowerBoundFuture.set(t);
-            t.start();
-        }
-
-        //--- we have to wait for both the lower-bound (if running at all), and the exact test to finish before submitting
-        // any results
-        try {
-            if(lowerBoundFuture.get() != null) {
-                lowerBoundFuture.get().join();
-            }
-
-            exactFuture.get().join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        //--- we are done, we have to increase the upper-bound by +1 because it contains the current upper-bound we tested
-        // was no longer valid so the value before that is the chromatic number.
-        final int exact = testValue.get() + 1;
-        if(DEBUG_FLAG) System.out.printf("<Exact Test: %d> Exact: %d%n", graph.hashCode(), exact);
-        return new Result(colouredGraph.get(), exact, lower.get(), upper.get(), true);
-
-
-    }
-
-    private static boolean exact(Graph graph, int colours) {
-        return exact(graph, null, colours);
-    }
-
     private static boolean exact(Graph graph, List<Node> nodes, int colours) {
 
         if(graph.getNodes().size() <= colours) {
@@ -659,14 +476,14 @@ public class ChromaticNumber {
 
         //--- 1
         if(colours == 1 && graph.getEdges().isEmpty()) {
-            return true; //graph coloring the graph with only one colour when there is at least one edge is impossible
+            return true; //coloring the graph with only one colour when there is at least one edge is impossible
         } else if(colours == 1) {
             return false;
         }
 
         //--- 2 isBipartie
         if(colours == 2) {
-            if(isBipartie(graph) /*&& graph.hasOnlyEvenCycles() */) { // TODO get Graph#hasOnlyEvenCycles
+            if(isBipartie(graph) /*&&graph.hasOnlyEvenCycles() */) { // TODO get Graph#hasOnlyEvenCycles
                 return true;
             }
         }
@@ -729,15 +546,6 @@ public class ChromaticNumber {
             }
         }
 
-        return false;
-    }
-
-    private static boolean exactGreedy(Graph graph, int color_nb) {
-        for (Node n : graph.getNodes().values()) {
-            if (upperBound(graph, UpperBoundMode.DEGREE_DESC) == color_nb) {
-                return true;
-            }
-        }
         return false;
     }
 
@@ -898,13 +706,7 @@ public class ChromaticNumber {
 
     }
 
-    //TODO remove if no longer needed
-    public static int triplleUpperBoundCheck(Graph graph){
-        return Math.min(upperBound(graph,UpperBoundMode.DEGREE_DESC),Math.min(upperBound(graph, UpperBoundMode.SHUFFLE),upperBound(graph,UpperBoundMode.UNORDERED)));
-    }
-
     //--- LOWER BOUND --
-
     /**
      * Calls and returns {@link ChromaticNumber#bronKerbosch(Graph, List, List, List)}.
      */
@@ -968,7 +770,7 @@ public class ChromaticNumber {
 
         // TODO replace busy waiting
         while (!runnable.getResult().isReady() && time < countdown) {
-            System.out.print(""); //for some reason this code does not work without this. is there maybe some sort of byte-code optimisation going on removing this type of loop
+            TestApp.debug(""); //for some reason this code does not work without this. is there maybe some sort of byte-code optimisation going on removing this type of loop
             time = System.nanoTime();
         }
         //thread.interrupt();
