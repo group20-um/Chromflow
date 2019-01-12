@@ -43,7 +43,7 @@ public class TestApp {
         // 18 -> [10..13] -> 10
         // 19 -> [11..13] -> 11
         // 20 -> [8..9]
-        args = new String[] {"src/main/java/data/block3_2018_graph05.txt"};
+        args = new String[] {"src/main/java/data/graph01.txt"};
         Graph graph = new Graph();
 
         String fileName = args[0];
