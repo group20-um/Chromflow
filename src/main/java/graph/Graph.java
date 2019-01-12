@@ -12,7 +12,6 @@ public class Graph implements Cloneable {
 
     //
     private int sizeCircle=0;
-    public int[][] adjMatrix;
     private ArrayList<Integer> sizes=new ArrayList<>();
 
     public Graph() {}
@@ -235,16 +234,8 @@ public class Graph implements Cloneable {
     }
 
     public boolean isComplete(){
+        boolean complete = nodes.keySet().stream().noneMatch(id -> edges.get(id).size() != nodes.size() - 1);
 
-        boolean complete=true;
-
-        for(int i=1; i<=nodes.size();i++){
-
-            if(this.getNeighbours(this.getNode(i)).size()!=nodes.size()-1){
-                complete=false;
-            }
-
-        }
         if (complete){
             System.out.println("IS complete");
         }
@@ -317,22 +308,26 @@ public class Graph implements Cloneable {
 
     }
 
-    public void createMatrix(){
+    public double[][] toAdjacentMatrix(){
 
-        this.adjMatrix=new int[nodes.size()][nodes.size()];
+        double[][] adjacentMatrix = new double[nodes.size()][nodes.size()];
 
-        for(int i=0; i<adjMatrix.length; i++){
-
-            List<Node> neighbours=this.getNeighbours(nodes.get(i+1));
-
-            for(int j=0; j<neighbours.size(); j++){
-
-                adjMatrix[i][neighbours.get(j).getId()-1]=1;
-                adjMatrix[neighbours.get(j).getId()-1][i]=1;
-
-            }
-
+        Map<Integer, Integer> mapping = new HashMap<>();
+        int index = 0;
+        for(Node n : nodes.values()) {
+            mapping.put(n.getId(), index);
+            index++;
         }
 
+        nodes.forEach((from_id, n) -> {
+            final int mapFromId = mapping.get(from_id);
+            getEdges(n.getId()).forEach((to_id, e) -> {
+                final int mapToId = mapping.get(to_id);
+                adjacentMatrix[mapFromId][mapToId] = 1;
+                adjacentMatrix[mapToId][mapFromId] = 1;
+            });
+        });
+
+        return adjacentMatrix;
     }
 }

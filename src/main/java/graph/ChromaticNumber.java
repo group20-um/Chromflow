@@ -1,7 +1,6 @@
 package graph;
 
-
-import org.apache.commons.math.random.GaussianRandomGenerator;
+import Jama.Matrix;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -10,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ChromaticNumber {
@@ -228,34 +228,38 @@ public class ChromaticNumber {
     private static void clean(Graph graph) {
 
         final double inital_nodes = graph.getNodes().size();
+        final double inital_density = graph.getDensity();
         final double inital_edges = (graph.getEdges().values().stream().mapToInt(Map::size).sum() / 2D);
 
         // remove singles
-        boolean removedSmth = true;
-        while (removedSmth) {
-            removedSmth = false;
-            {
-                Iterator<Map.Entry<Integer, Node>> i = graph.getNodes().entrySet().iterator();
-                while (i.hasNext()) {
-                    Map.Entry<Integer, Node> e = i.next();
-                    Node from = e.getValue();
+        long time = System.currentTimeMillis();
+        Stack<Integer> singleNodes = graph.getNodes().keySet().stream().filter(id -> graph.getDegree(id) <= 1).collect(Collectors.toCollection(Stack::new));
+        while (!singleNodes.isEmpty()) {
+            final int fromId = singleNodes.pop();
+            final int degree = graph.getEdges(fromId).size();
 
-                    if (graph.getEdges(from.getId()).size() <= 1) {
-                        if (graph.getEdges(from.getId()).size() == 1) {
-                            int toId = graph.getEdges(from.getId()).values().stream().findFirst().get().getTo().getId();
-                            graph.getEdges(toId).remove(from.getId()); // == graph.getEdges(toId).removeIf(eA -> eA.getTo().getId() == from.getId());
-                        }
-                        graph.getEdges().remove(e.getValue().getId());
-                        i.remove();
-                        removedSmth = true;
-                    }
+            if (degree == 1) {
+                int toId = graph.getEdges(fromId).values().stream().findAny().get().getTo().getId();
+                graph.getEdges(toId).remove(fromId);
+
+                if(graph.getEdges(toId).size() == 1) {
+                    singleNodes.add(toId);
                 }
             }
+            graph.getEdges().remove(fromId);
+            graph.getNodes().remove(fromId);
+
         }
 
-
-
-        System.out.printf("Debug >> Removing singles, nodes: %d (%.8f), edges: %d%n", graph.getNodes().size(), (1D - (graph.getNodes().size() / inital_nodes)), graph.getEdges().values().stream().mapToInt(Map::size).sum() / 2);
+        System.out.printf("Debug (%dms) >> Removing singles, nodes: %d (%.6f%%), edges: %d (%.6f%%), density: %.2f%% (%.2f%%) %n",
+                (System.currentTimeMillis() - time),
+                graph.getNodes().size(),
+                (1D - (graph.getNodes().size() / inital_nodes)) * 100,
+                graph.getEdges().size() / 2,
+                (1D - ((graph.getEdges().size() / 2) / inital_edges)) * 100,
+                graph.getDensity() * 100,
+                inital_density * 100
+            );
     }
 
     /**
@@ -366,24 +370,38 @@ public class ChromaticNumber {
     // --- EXACT_EXPERIMENTAL SECTION ---
     private static Result exactTest(Graph graph, boolean runTimeBound) {
         //---
+        graph.reset();
         final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC);
-        final int lower = 0;
+        final int lower =  TestLowerBound.search(graph); //simpleUpperBound(graph);
+
+        /*if(lower > upper) {
+            lower = 1;
+        }*/
+
         System.out.printf("<Exact Test> Range: [%d..%d]%n", lower, upper);
 
-        graph.reset();
-
-        //TODO implement binary search
         if(upper == lower) {
             System.out.printf("<Exact Test>>> Exact: %d%n", lower);
             return new Result(graph, upper, upper, upper, true);
-        }
+        }/* else {
+            graph.reset();
+            lower = Math.max(lower, runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph));
+            System.out.printf("<Exact Test> Improved Range: [%d..%d]%n", lower, upper);
+
+            if(upper == lower) {
+                System.out.printf("<Exact Test>>> Exact: %d%n", lower);
+                return new Result(graph, upper, upper, upper, true);
+            }
+        }*/
+
+        graph.reset();
 
         // TODO if graph is bipartite -> chromatic number = 2 - https://math.stackexchange.com/questions/32508/a-graph-g-is-bipartite-if-and-only-if-g-can-be-coloured-with-2-colours
         // TODO find for 3, 4(, and maybe more)
 
         //---
 
-        boolean exp = false;
+        boolean exp = true;
         List<Node> nodes = null;
         if(exp) {
             long time = System.currentTimeMillis();
@@ -393,17 +411,25 @@ public class ChromaticNumber {
                     return -Integer.compare(graph.getDegree(o1.getId()), graph.getDegree(o2.getId()));
                 }
             }).collect(Collectors.toList());
-            Collections.sort(nodes, new Comparator<Node>() {
+            nodes.sort(new Comparator<Node>() {
                 @Override
                 public int compare(Node o1, Node o2) {
                     if (graph.hasEdge(o1.getId(), o2.getId())) {
-                        return -1;
+                        return 0; //TODO get this to be -1
                     } else {
                         return 1;
                     }
                 }
             });
             System.out.println("Time to sort>> " + (System.currentTimeMillis() - time));
+        } else {
+            System.out.println("Exact >> Sort degree descending (default)");
+            nodes = graph.getNodes().values().stream().sorted(new Comparator<Node>() {
+                @Override
+                public int compare(Node o1, Node o2) {
+                    return -Integer.compare(graph.getEdges(o2.getId()).size(), graph.getEdges(o1.getId()).size());
+                }
+            }).collect(Collectors.toList());
         }
         //---
 
@@ -428,6 +454,22 @@ public class ChromaticNumber {
         final int exact = testValue+1;
         System.out.printf("<Exact Test>>  Exact: %d%n", exact);
         return new Result(result, exact, lower, upper, true);
+    }
+
+    public static Result lowerBoundEigenvalues(Graph graph) {
+        Matrix matrix = new Matrix(graph.toAdjacentMatrix());
+
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
+
+        double[] eigs = matrix.eig().getRealEigenvalues();
+
+        for(int i = 0; i < eigs.length; i++) {
+            min = Math.min(eigs[i], min);
+            max = Math.max(eigs[i], max);
+        }
+
+        return new Result(null, 0, (int) Math.ceil(1 - max / min), 0, false);
     }
 
     private static Result exactTestLowToHigh(Graph graph, boolean runTimeBound) {
@@ -611,20 +653,37 @@ public class ChromaticNumber {
 
     private static boolean exact(Graph graph, List<Node> nodes, int colours) {
 
-        if(colours == 1 && graph.getEdges().size() > 0) {
+        if(graph.getNodes().size() <= colours) {
             return true;
         }
 
-        nodes = null;
-        // sort by degree descending
-        if(nodes == null) {
-            System.out.println("Exact >> Sort degree descending (default)");
-            nodes = graph.getNodes().values().stream().sorted(new Comparator<Node>() {
-                @Override
-                public int compare(Node o1, Node o2) {
-                    return -Integer.compare(graph.getEdges(o2.getId()).size(), graph.getEdges(o1.getId()).size());
+        //--- 1
+        if(colours == 1 && graph.getEdges().isEmpty()) {
+            return true; //graph coloring the graph with only one colour when there is at least one edge is impossible
+        } else if(colours == 1) {
+            return false;
+        }
+
+        //--- 2 isBipartie
+        if(colours == 2) {
+            if(isBipartie(graph) /*&& graph.hasOnlyEvenCycles() */) { // TODO get Graph#hasOnlyEvenCycles
+                return true;
+            }
+        }
+
+        //--- 3
+
+        //--- 4
+        if(colours == 4) {
+            //https://www.quora.com/Is-there-an-easy-method-to-determine-if-a-graph-is-planar-or-not
+            // Euler criteria for planar graphs
+            if(graph.getNodes().size() >= 3) {
+                if((graph.getEdges().size() / 2) <= (3 * graph.getNodes().size() - 6)
+                    //graph.noCyleLength == 3 && graph.getEdges() / 2 <= 2 * graph.getNodes().size() - 4
+                ) {
+                    // check if planar
                 }
-            }).collect(Collectors.toList());
+            }
         }
 
         // shuffle
@@ -711,7 +770,7 @@ public class ChromaticNumber {
     }
 
     /**
-     * Runs and returns {@link ChromaticNumber#upperBoundIterative(Graph,int)}.
+     * Runs and returns {@link ChromaticNumber#upperBoundIterative(Graph,UpperBoundMode)}.
      */
     private static int upperBound(Graph graph, UpperBoundMode mode) {
         return upperBoundIterative(graph, mode);
@@ -724,7 +783,6 @@ public class ChromaticNumber {
      * @return The upper bound, the amount of colours used to colour the graph.
      */
     private static int upperBoundIterative(Graph graph, UpperBoundMode upperBoundMode) {
-
         Stack<Node> unvisited = null;
         //--- Build different unvisited maps
         switch (upperBoundMode){
@@ -786,6 +844,57 @@ public class ChromaticNumber {
         }
 
         return max + 1;
+
+    }
+
+    private static boolean isBipartie(Graph graph) {
+        Stack<Node> unvisited = graph.getNodes().values().stream()
+                .sorted(Comparator.comparingInt(o -> -graph.getEdges(o.getId()).size()))
+                .collect(Collectors.toCollection(Stack::new));
+
+        int max = 0;
+        while (!unvisited.isEmpty()){
+            Node node = unvisited.pop();
+
+            //--- What colours does its neighbours have?
+            Collection<Node.Edge> edges = graph.getEdges(node.getId()).values();
+            List<Integer> colours = edges.stream()
+                    .filter(edge -> edge.getTo().getValue() != -1)
+                    .map(edge -> edge.getTo().getValue())
+                    .collect(Collectors.toList());
+
+            //--- No colours -> first node being visited in the graph
+            if (colours.isEmpty()) {
+                node.setValue(0);
+            }
+            //--- At least one colour -> not the first node anymore
+            else {
+
+                //--- "Highest"  value/colour adjacent to the node
+                final int maxColour = colours.stream().max(Comparator.naturalOrder()).get();
+
+                int colour = 0; // Lowest value we can chose for a valid colour
+
+                //--- try to ideally find an existing colour that we can reuse
+                while (colour <= maxColour) {
+                    if (!colours.contains(colour)) {
+                        break;
+                    }
+                    colour++;
+                }
+
+                node.setValue(colour);
+                max = Math.max(max, colour);
+
+                if(max > 1) {
+                    return false;
+                }
+
+            }
+
+        }
+
+        return true;
 
     }
 

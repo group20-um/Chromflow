@@ -18,26 +18,34 @@ public class TestApp {
 
         // www.cs.uu.nl/education/scripties/pdf.php?SID=INF/SCR-2009-095
 
-        // We can solve: 1,6,8,10,11,17,19
-        // 02 -> 3 & 4 coloring algo needed
-        // 03 -> <special structure>
-        // 04 -> 4 coloring algo needed
-        // 05 -> some combination of everything... probably
-        // 07 -> no idea...
-        // 09 ->
-        // 12 -> Seems to have the same "hub"-like structure as '10'
-        // 13 ->
-        // 14 -> looks interesting in Gephi...
-        // 15 -> Clique removal should do wonders here, 3 cliques (clusters) and only a single point of connection <3
-        // 16 -> Seems to have many "hub"-like structures
-        // 18 -> Similar structure to 15
-        // 20 -> Interesting symmetrical structure
-        args[0] = "src/main/java/data/block3_2018_graph05.txt";
+
+        //3-algo: 5
+        //4-algo: 6
+
+        // Solve: 9
+
+        // 01 -> [3..4] -> 3
+        // 02 -> [3..6] (3&4-algo)
+        // 03 -> [6..8]
+        // 04 -> [4..8] (4-algo)
+        // 05 -> [0..3] -> 2 // methods violates
+        // 06 -> [3..3] -> 3
+        // 07 -> [8..12]
+        // 08 -> [98..98] -> 98
+        // 09 -> [3..6]
+        // 10 -> [2..6] -> 3
+        // 11 -> [15..15] -> 15
+        // 12 -> [2..3] -> 3
+        // 13 -> [9..12]
+        // 14 -> [4...5]
+        // 15 -> [5..10] // method violates
+        // 16 -> [2..4] // method violates
+        // 17 -> [8..8] -> 8
+        // 18 -> [10..13] -> 10
+        // 19 -> [11..13] -> 11
+        // 20 -> [8..9]
+        args = new String[] {"src/main/java/data/block3_2018_graph05.txt"};
         Graph graph = new Graph();
-        if(args.length == 0) {
-            System.out.println("Debug: No file path provided!");
-            return;
-        }
 
         String fileName = args[0];
         System.out.println("########### READ FROM FILE ###########");
@@ -149,10 +157,7 @@ public class TestApp {
             int lower = Integer.MIN_VALUE;
             int upper = Integer.MAX_VALUE;
             for(Graph sg : subgraphs.stream().sorted(Comparator.comparingInt(o -> o.getNodes().size())).collect(Collectors.toList())) {
-                ChromaticNumber.Result lR_ = ChromaticNumber.compute(ChromaticNumber.Type.LOWER, sg, false);
-                ChromaticNumber.Result uR_ =  ChromaticNumber.compute(ChromaticNumber.Type.UPPER, sg, false);
-                lower = Math.max(lower, lR_.getLower());
-                upper = Math.min(upper, uR_.getUpper());
+                System.out.println("Result>> " + ChromaticNumber.compute(ChromaticNumber.Type.EXACT, sg, false));
                 System.out.println("Subgraph Density >> " + sg.getDensity());
             }
             System.out.printf("New bounds: [%d..%d]%n", lower, upper);
