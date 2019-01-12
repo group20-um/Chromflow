@@ -234,23 +234,6 @@ public class ChromaticNumber {
                     return 1;
                 }
             });
-            /*
-            nodes = graph.getNodes().values().stream().sorted(new Comparator<Node>() {
-                @Override
-                public int compare(Node o1, Node o2) {
-                    return -Integer.compare(graph.getDegree(o1.getId()), graph.getDegree(o2.getId()));
-                }
-            }).collect(Collectors.toList());
-            nodes.sort(new Comparator<Node>() {
-                @Override
-                public int compare(Node o1, Node o2) {
-                    if (graph.hasEdge(o1.getId(), o2.getId())) {
-                        return 0; //TODO get thiws to be -1
-                    } else {
-                        return 1;
-                    }
-                }
-            });*/
             TestApp.debug("Time to sort by neighbours >> %dms%n", (System.currentTimeMillis() - time));
         } else {
             TestApp.debugln("Exact >> Sort degree descending (default)");

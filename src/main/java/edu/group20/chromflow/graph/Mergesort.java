@@ -1,6 +1,5 @@
 package edu.group20.chromflow.graph;
 
-
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -18,9 +17,7 @@ public class Mergesort {
         T[] R = (T[]) new Object[n2];
 
         System.arraycopy(array, l, L, 0, n1);
-        for(int j = 0; j < n2; j++) {
-            R[j] = array[m + j + 1];
-        }
+        System.arraycopy(array, m + 1, R, 0, n2);
 
         int i = 0, j = 0;
         int k = l;
