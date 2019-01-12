@@ -212,9 +212,6 @@ public class ChromaticNumber {
 
         graph.reset();
 
-        // TODO if graph is bipartite -> chromatic number = 2 - https://math.stackexchange.com/questions/32508/a-graph-g-is-bipartite-if-and-only-if-g-can-be-coloured-with-2-colours
-        // TODO find for 3, 4(, and maybe more)
-
         //---
 
         boolean exp = true;
