@@ -19,12 +19,16 @@ public class Graph implements Cloneable {
 
     public Graph() {}
 
+    public int getEdgeCount() {
+        return edges.values().stream().mapToInt(Map::size).sum();
+    }
+
     public int getDegree(int node) {
         return this.edges.get(node).size();
     }
 
     public double getDensity() {
-        return edges.values().stream().mapToInt(Map::size).sum() / Math.pow(this.nodes.size(), 2);
+        return getEdgeCount() / Math.pow(this.nodes.size(), 2);
     }
 
     public void reset() {

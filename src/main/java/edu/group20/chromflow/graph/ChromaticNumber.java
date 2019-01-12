@@ -41,7 +41,7 @@ public class ChromaticNumber {
 
         final double inital_nodes = graph.getNodes().size();
         final double inital_density = graph.getDensity();
-        final double inital_edges = (graph.getEdges().values().stream().mapToInt(Map::size).sum() / 2D);
+        final double inital_edges = graph.getEdgeCount();
 
         // remove singles
         long time = System.currentTimeMillis();
@@ -67,8 +67,8 @@ public class ChromaticNumber {
                 (System.currentTimeMillis() - time),
                 graph.getNodes().size(),
                 (1D - (graph.getNodes().size() / inital_nodes)) * 100,
-                graph.getEdges().size() / 2,
-                (1D - ((graph.getEdges().size() / 2) / inital_edges)) * 100,
+                graph.getEdgeCount(),
+                (1D - (graph.getEdgeCount() / inital_edges)) * 100,
                 graph.getDensity() * 100,
                 inital_density * 100
             );
@@ -213,18 +213,19 @@ public class ChromaticNumber {
         graph.reset();
 
         //---
+        final boolean SORT_BY_DEGREE_DESC = true;
+        final boolean SORT_BY_NEIGHBOURS = true;
 
-        boolean exp = true;
         LinkedList<Node> nodes = new LinkedList<>(graph.getNodes().values());
-        Quicksort.sort(nodes, new Comparator<Node>() {
-            @Override
-            public int compare(Node o1, Node o2) {
-                return -Integer.compare(graph.getDegree(o1.getId()), graph.getDegree(o2.getId()));
-            }
-        });
-        if(exp) {
+
+        if(SORT_BY_DEGREE_DESC) {
             long time = System.currentTimeMillis();
-            Quicksort.sort(nodes, (o1, o2) -> {
+            nodes = Mergesort.sort(nodes, (o1, o2) -> -Integer.compare(graph.getDegree(o1.getId()), graph.getDegree(o2.getId())));
+            TestApp.debug("Time to sort by neighbours desc >> %dms%n", (System.currentTimeMillis() - time));
+        }
+        if(SORT_BY_NEIGHBOURS) {
+            long time = System.currentTimeMillis();
+            nodes = Mergesort.sort(nodes, (o1, o2) -> {
                 if(o1 == o2) return 0;
 
                 if (graph.hasEdge(o1.getId(), o2.getId())) {
@@ -250,7 +251,7 @@ public class ChromaticNumber {
                     }
                 }
             });*/
-            TestApp.debugln("Time to sort>> " + (System.currentTimeMillis() - time));
+            TestApp.debug("Time to sort by neighbours >> %dms%n", (System.currentTimeMillis() - time));
         } else {
             TestApp.debugln("Exact >> Sort degree descending (default)");
         }
@@ -325,7 +326,7 @@ public class ChromaticNumber {
             //https://www.quora.com/Is-there-an-easy-method-to-determine-if-a-graph-is-planar-or-not
             // Euler criteria for planar graphs
             if(graph.getNodes().size() >= 3) {
-                if((graph.getEdges().size() / 2) <= (3 * graph.getNodes().size() - 6)
+                if(graph.getEdgeCount() <= (3 * graph.getNodes().size() - 6)
                     //graph.noCyleLength == 3 && graph.getEdges() / 2 <= 2 * graph.getNodes().size() - 4
                 ) {
                     // check if planar

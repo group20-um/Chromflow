@@ -13,7 +13,7 @@ public class TestApp {
     public final static boolean KELK_MODE = false;
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
         // www.cs.uu.nl/education/scripties/pdf.php?SID=INF/SCR-2009-095
 
@@ -32,18 +32,18 @@ public class TestApp {
         // 07 -> [8..12]
         // 08 -> [98..98] -> 98
         // 09 -> [3..6]
-        // 10 -> [2..6] -> 3
+        // 10 -> [2..6] (-> 3)
         // 11 -> [15..15] -> 15
         // 12 -> [2..3] -> 3
         // 13 -> [9..12]
         // 14 -> [4...5]
-        // 15 -> [5..10] // method violates
+        // 15 -> [5..9] // method violates
         // 16 -> [2..4] // method violates
         // 17 -> [8..8] -> 8
         // 18 -> [10..13] -> 10
-        // 19 -> [11..13] -> 11
+        // 19 -> [11..13] (-> 11, exp makes it worse)
         // 20 -> [8..9]
-        args = new String[] {"src/main/java/data/graph01.txt"};
+        args = new String[] {"src/main/java/data/block3_2018_graph05.txt"};
         Graph graph = new Graph();
 
         String fileName = args[0];
@@ -81,7 +81,7 @@ public class TestApp {
             });
 
             debugln("Build Graph [1] >> " + (System.currentTimeMillis() - time));
-            debug("Debug: Graph (%s) parsed with %d vertices and %d edges.%n", fileName, graph.getNodes().size(), graph.getEdges().size() / 2);
+            debug("Debug: Graph (%s) parsed with %d vertices and %d edges.%n", fileName, graph.getNodes().size(), graph.getEdgeCount());
 
         } catch (IOException e) {
             debug("Debug %s:-1 >> %s%n", fileName, String.format("The file could not (!) be read. (%s)", e.getMessage()));
