@@ -17,33 +17,7 @@ public class TestApp {
 
         // www.cs.uu.nl/education/scripties/pdf.php?SID=INF/SCR-2009-095
 
-
-        //3-algo: 5
-        //4-algo: 6
-
-        // Solve: 9
-
-        // 01 -> [3..4] -> 3
-        // 02 -> [3..6] (3&4-algo)
-        // 03 -> [6..8]
-        // 04 -> [4..8] (4-algo)
-        // 05 -> [0..3] -> 2 // methods violates
-        // 06 -> [3..3] -> 3
-        // 07 -> [8..12]
-        // 08 -> [98..98] -> 98
-        // 09 -> [3..6]
-        // 10 -> [2..6] (-> 3)
-        // 11 -> [15..15] -> 15
-        // 12 -> [2..3] -> 3
-        // 13 -> [9..12]
-        // 14 -> [4...5]
-        // 15 -> [5..9] // method violates
-        // 16 -> [2..4] // method violates
-        // 17 -> [8..8] -> 8
-        // 18 -> [10..13] -> 10
-        // 19 -> [11..13] (-> 11, exp makes it worse)
-        // 20 -> [8..9]
-        args = new String[] {"src/main/java/data/block3_2018_graph05.txt"};
+        args = new String[] {"src/main/java/data/block3_2018_graph20.txt"};
         Graph graph = new Graph();
 
         String fileName = args[0];
@@ -52,7 +26,7 @@ public class TestApp {
             long time = System.currentTimeMillis();
             List<String> lines = Files.readAllLines(Paths.get(fileName));
 
-            debugln("ReadAllLines >> " + (System.currentTimeMillis() - time));
+            debug("ReadAllLines (%dms) >> %d line(s)%n", (System.currentTimeMillis() - time), lines.size());
 
             time = System.currentTimeMillis();
 
@@ -80,8 +54,8 @@ public class TestApp {
 
             });
 
-            debugln("Build Graph [1] >> " + (System.currentTimeMillis() - time));
-            debug("Debug: Graph (%s) parsed with %d vertices and %d edges.%n", fileName, graph.getNodes().size(), graph.getEdgeCount());
+            debug("Build Graph (%dms) >> Graph (%s) parsed %d vertices, %d edges and a density of %.6f%%.%n",
+                    (System.currentTimeMillis() - time), fileName, graph.getNodes().size(), graph.getEdgeCount(), graph.getDensity() * 100);
 
         } catch (IOException e) {
             debug("Debug %s:-1 >> %s%n", fileName, String.format("The file could not (!) be read. (%s)", e.getMessage()));
@@ -89,11 +63,9 @@ public class TestApp {
             e.printStackTrace();
         }
 
-        debug("Graph Density: %.6f%%%n", graph.getDensity() * 100);
-
         long time = System.currentTimeMillis();
-        debugln("Result>> " + ChromaticNumber.compute(ChromaticNumber.Type.EXACT, graph, false));
-        debug("Result>> %dms", System.currentTimeMillis() - time);
+        debug("Result>> %s%n", ChromaticNumber.compute(ChromaticNumber.Type.EXACT, graph, false));
+        debug("Result>> %dms%n", System.currentTimeMillis() - time);
 
     }
 

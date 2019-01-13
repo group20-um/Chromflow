@@ -1,4 +1,4 @@
-package edu.group20.chromflow.graph;
+package edu.group20.chromflow.util;
 
 import java.util.*;
 import java.util.stream.Collectors;

@@ -1,7 +1,9 @@
 package edu.group20.chromflow.graph;
 
 import Jama.Matrix;
+import edu.group20.chromflow.GephiConverter;
 import edu.group20.chromflow.TestApp;
+import edu.group20.chromflow.util.Mergesort;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -63,7 +65,33 @@ public class ChromaticNumber {
 
         }
 
-        TestApp.debug("Debug (%dms) >> Removing singles, nodes: %d (%.6f%%), edges: %d (%.6f%%), density: %.2f%% (%.2f%%) %n",
+        /*
+        while (graph.getNodes().isEmpty()) { //TODO
+            HashSet<Node> clique = new HashSet<>();
+            int min = bronKerboschWithPivot(
+                    graph,
+                    clique,
+                    graph.getNodes().values().stream().collect(Collectors.toCollection(HashSet::new)),
+                    new HashSet<>());
+            if(min == 0) break;
+
+            clique.forEach(node -> {
+
+            });
+            TestApp.debugln("clique >>" + min + " <-> " + clique.size());
+        }
+
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+        for (Integer id : graph.getNodes().keySet()) {
+            min = Math.min(min, graph.getDegree(id));
+            max = Math.max(max, graph.getDegree(id));
+        }
+        TestApp.debugln("minmax>>" + min + " <> " + max);
+        */
+
+
+        TestApp.debug("Cleaning (%dms) >> Removing singles, nodes: %d (%.6f%%), edges: %d (%.6f%%), density: %.6f%% (%.6f%%) %n",
                 (System.currentTimeMillis() - time),
                 graph.getNodes().size(),
                 (1D - (graph.getNodes().size() / inital_nodes)) * 100,
@@ -94,6 +122,7 @@ public class ChromaticNumber {
     public static Result compute(Type type, Graph graph, boolean runTimeBound) {
         graph.reset();
         clean(graph);
+        GephiConverter.generateGephiFile(graph);
         switch (type) {
 
             case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
@@ -181,50 +210,59 @@ public class ChromaticNumber {
     private static Result exactTest(Graph graph, boolean runTimeBound) {
         //---
         graph.reset();
+        long time = System.currentTimeMillis();
         final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC);
+        TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
         TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", upper);
-        int lower =  TestLowerBound.search(graph); //simpleUpperBound(graph);
+
+        int lower = 1;
         TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
-        /*if(lower > upper) {
-            lower = 1;
-        }*/
-
-        TestApp.debug("<Exact Test> Range: [%d..%d]%n", lower, upper);
-
-        if(upper == lower) {
-            TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
-            TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
-            return new Result(graph, upper, upper, upper, true);
-        }/* else if(lower * 2 < upper) {
+        if(upper > 4) {
             graph.reset();
-            lower = Math.max(lower, runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph));
-
-            TestApp.debug("<Exact Test> Improved Range: [%d..%d]%n", lower, upper);
+            time = System.currentTimeMillis();
+            lower = TestLowerBound.search(graph);
+            TestApp.debug("Lower bound (%dms) >> %d%n", (System.currentTimeMillis() - time), lower);
             TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
-            if(upper == lower) {
-                TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
-                TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
-                return new Result(graph, upper, upper, upper, true);
+            if (lower > upper) {
+                lower = 1;
             }
-        }*/
+
+            if (upper == lower) {
+                TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
+                TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
+                return new Result(graph, upper, upper, upper, true);
+            }/* else if(lower * 2 < upper) {
+                graph.reset();
+                lower = Math.max(lower, runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph));
+
+                TestApp.debug("<Exact Test> Improved Range: [%d..%d]%n", lower, upper);
+                TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
+
+                if(upper == lower) {
+                    TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
+                    TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
+                    return new Result(graph, upper, upper, upper, true);
+                }
+            }*/
+        }
 
         graph.reset();
 
         //---
         final boolean SORT_BY_DEGREE_DESC = true;
-        final boolean SORT_BY_NEIGHBOURS = true;
+        final boolean SORT_BY_NEIGHBOURS = false;
 
         LinkedList<Node> nodes = new LinkedList<>(graph.getNodes().values());
 
         if(SORT_BY_DEGREE_DESC) {
-            long time = System.currentTimeMillis();
+            time = System.currentTimeMillis();
             nodes = Mergesort.sort(nodes, (o1, o2) -> -Integer.compare(graph.getDegree(o1.getId()), graph.getDegree(o2.getId())));
-            TestApp.debug("Time to sort by neighbours desc >> %dms%n", (System.currentTimeMillis() - time));
+            TestApp.debug("Sort nodes by degree (%dms) >> Done%n", (System.currentTimeMillis() - time));
         }
         if(SORT_BY_NEIGHBOURS) {
-            long time = System.currentTimeMillis();
+            time = System.currentTimeMillis();
             nodes = Mergesort.sort(nodes, (o1, o2) -> {
                 if(o1 == o2) return 0;
 
@@ -234,17 +272,16 @@ public class ChromaticNumber {
                     return 1;
                 }
             });
-            TestApp.debug("Time to sort by neighbours >> %dms%n", (System.currentTimeMillis() - time));
-        } else {
-            TestApp.debugln("Exact >> Sort degree descending (default)");
+            TestApp.debug("Sort nodes by relation (%dms) >> Done%n", (System.currentTimeMillis() - time));
         }
         //---
 
         int testValue = upper - 1;
         Graph result = graph.clone();
 
+        time = System.currentTimeMillis();
         while(exact(graph, nodes, testValue)) {
-            TestApp.debug("<Exact Test> The graph CAN be coloured with %d colours.%n", testValue);
+            TestApp.debug("Exact Test >> The graph CAN be coloured with %d colours.%n", testValue);
             TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", testValue);
 
             if(testValue == lower) {
@@ -256,11 +293,9 @@ public class ChromaticNumber {
             testValue--;
 
         }
-
-
         final int exact = testValue+1;
 
-        TestApp.debug("<Exact Test>>  Exact: %d%n", exact);
+        TestApp.debug("Exact Test (%dms) >> Exact: %d%n", (System.currentTimeMillis() - time), exact);
         TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", exact);
 
         return new Result(result, exact, lower, upper, true);
@@ -525,7 +560,7 @@ public class ChromaticNumber {
      * Calls and returns {@link ChromaticNumber#bronKerbosch(Graph, List, List, List)}.
      */
     private static int lowerBound(Graph graph) {
-        return bronKerbosch(graph, new ArrayList<>(), new ArrayList<>(graph.getNodes().values()), new ArrayList<>());
+        return bronKerboschWithPivot(graph, new HashSet<>(), new HashSet<>(graph.getNodes().values()), new HashSet<>());
     }
 
     /**
@@ -537,10 +572,11 @@ public class ChromaticNumber {
      * @param _X set of excluded Nodes
      * @return The size of the biggest clique in the given graph.
      **/
-    private static int bronKerbosch(Graph graph, List<Node> _R, List<Node> _P, List<Node> _X) {
+    private static int bronKerbosch(Graph graph, HashSet<Node> _R, HashSet<Node> _P, HashSet<Node> _X) {
         int max = Integer.MIN_VALUE;
         if(_P.isEmpty() && _X.isEmpty()) {
             max = Math.max(max, _R.size());
+            return max;
         }
 
         Iterator<Node> nodeIterator = _P.iterator();
@@ -548,20 +584,74 @@ public class ChromaticNumber {
 
             //---
             Node node = nodeIterator.next();
-            List<Node> neighbours = graph.getEdges(node.getId()).values().stream().map(Node.Edge::getTo).collect(Collectors.toList());
+            //List<Node> neighbours = graph.getEdges(node.getId()).values().stream().map(Node.Edge::getTo).collect(Collectors.toList());
+            List<Node> neighbours = graph.getNeighbours(node);
 
             //---
-            List<Node> dR = new ArrayList<>(_R);
+            HashSet<Node> dR = _R; //List<Node> dR = new ArrayList<>(_R);
             dR.add(node);
 
-            List<Node> dP = _P.stream().filter(neighbours::contains).collect(Collectors.toList());
-            List<Node> dX = _X.stream().filter(neighbours::contains).collect(Collectors.toList());
+            HashSet<Node> dP = _P.stream().filter(neighbours::contains).collect(Collectors.toCollection(HashSet::new));
+            HashSet<Node> dX = _X.stream().filter(neighbours::contains).collect(Collectors.toCollection(HashSet::new));
 
             max = Math.max(bronKerbosch(graph, dR, dP, dX), max);
 
             //---
             nodeIterator.remove();
             _X.add(node);
+        }
+
+        return max;
+    }
+
+    private static int bronKerboschWithPivot(Graph graph, HashSet<Node> _R, HashSet<Node> _P, HashSet<Node> _X) {
+        int max = Integer.MIN_VALUE;
+        if(_P.isEmpty() && _X.isEmpty()) {
+            max = Math.max(max, _R.size());
+            return max;
+        }
+
+        //--- pivot
+        HashSet<Node> P1 = new HashSet<>(_P); //List<Node> dR = new ArrayList<>(_R);
+        final Optional<Node> pivotA = _P.stream().max((o1, o2) -> -Integer.compare(graph.getDegree(o1.getId()), graph.getDegree(o2.getId())));
+        final Optional<Node> pivotX = _X.stream().max((o1, o2) -> -Integer.compare(graph.getDegree(o1.getId()), graph.getDegree(o2.getId())));
+
+        Node pivot = null;
+        if(pivotA.isPresent() && pivotX.isPresent()) {
+            pivot = graph.getDegree(pivotA.get().getId()) > graph.getDegree(pivotX.get().getId()) ? pivotA.get() : pivotX.get();
+        } else if(pivotA.isPresent()) {
+            pivot = pivotA.get();
+        } else if(pivotX.isPresent()) {
+            pivot = pivotX.get();
+        }
+
+        if(pivot != null) {
+            final Node finalPivot = pivot;
+            _P.removeIf(e -> graph.hasEdge(e.getId(), finalPivot.getId()));
+
+            Iterator<Node> nodeIterator = _P.iterator();
+            while (nodeIterator.hasNext()) {
+                Node v = nodeIterator.next();
+
+                _R.add(v);
+
+
+                max = Math.max(max, bronKerboschWithPivot(
+                        graph,
+                        _R,
+                        P1.stream().filter(e -> graph.hasEdge(e.getId(), v.getId())).collect(Collectors.toCollection(HashSet::new)),
+                        _X.stream().filter(e -> graph.hasEdge(e.getId(), v.getId())).collect(Collectors.toCollection(HashSet::new))
+                ));
+
+                _R.remove(v);
+                P1.remove(v);
+                _X.add(v);
+                //---
+
+
+                nodeIterator.remove();
+                _X.add(v);
+            }
         }
 
         return max;

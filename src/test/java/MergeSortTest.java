@@ -1,4 +1,4 @@
-import edu.group20.chromflow.graph.Mergesort;
+import edu.group20.chromflow.util.Mergesort;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
