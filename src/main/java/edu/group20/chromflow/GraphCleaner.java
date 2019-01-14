@@ -14,6 +14,8 @@ public class GraphCleaner {
 
     public static ChromaticNumber.Result clean(Graph graph) {
 
+
+
         if(graph.isComplete()) {
             return new ChromaticNumber.Result(graph, graph.getNodes().size(), graph.getNodes().size(), graph.getNodes().size(), true);
         }
@@ -50,7 +52,6 @@ public class GraphCleaner {
                 graph.getDensity() * 100,
                 inital_density * 100
         );
-
 
         //--- Tree
         if(inital_nodes > 0 && graph.getNodes().isEmpty()) {
@@ -118,11 +119,33 @@ public class GraphCleaner {
 
     private static void divider(LinkedList<Graph> subgraphs, Graph graph) {
 
-        Stack<Node> hashSet = graph.getNodes().values().stream().filter(e -> graph.getDegree(e.getId()) == graph.getNodes().size() - 1).collect(Collectors.toCollection(Stack::new));
-        if(hashSet.isEmpty()) {
-            subgraphs.add(graph);
+        /*
+        // TODO Assuming that :MightFixCliques actually fixes the bug that we had than we no longer require this check
+        if(graph.getNodes().size() == 2 && graph.getEdges().size() == 2) {
+            subgraphs.add(graph.clone());
+            graph.getNodes().clear();
+            graph.getEdges().clear();
             return;
-        }
+        }*/
+
+        /*Stack<Node> hashSet = graph.getNodes().values().stream()
+                .filter(e -> graph.getDegree(e.getId()) == graph.getNodes().size() - 1)
+                .collect(Collectors.toCollection(Stack::new));*/
+
+        // :MightFixCliques TODO Validate, the idea is that instead of just removing all the nodes, we keep walking down the tree
+        // so we get the correct levels, otherwise we might just get rid of an entire clique by accident
+        Stack<Node> hashSet = new Stack<>();
+        graph.getNodes().values().stream()
+                .filter(e -> graph.getDegree(e.getId()) == graph.getNodes().size() - 1).findAny().ifPresent(hashSet::add);
+
+        // TODO Just an idea, what exactly happens if we have more than split point at once in a graph, this is causing the issues
+        // with graph block3_2018_08. In theory, we would expect to split into to but we just return this one, so we get an erroneous +1
+        /*if(hashSet.size() > 1) {
+            subgraphs.add(graph.clone());
+            graph.getNodes().clear();
+            graph.getEdges().clear();
+            return;
+        }*/
 
         while (!hashSet.isEmpty()) {
             Node n = hashSet.pop();
