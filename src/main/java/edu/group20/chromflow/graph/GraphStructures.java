@@ -31,7 +31,7 @@ public class GraphStructures {
         double[] eig = eigenvalues.getRealEigenvalues();
         Arrays.sort(eig);
         final double EPSILON = 1E-14;
-        return (Math.abs(eig[0]+eig[eig.length-1]) < =EPSILON);
+        return (Math.abs(eig[0]+eig[eig.length-1]) <= EPSILON);
     }
 
     public static boolean isCompleteEigenValue(Graph graph) {

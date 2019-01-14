@@ -16,7 +16,7 @@ public class TestApp {
 
         // www.cs.uu.nl/education/scripties/pdf.php?SID=INF/SCR-2009-095
 
-        args = new String[] {"src/main/java/data/block3_2018_graph20.txt"};
+        args = new String[] {"src/main/java/data/block3_2018_graph01.txt"};
         Graph graph = new Graph();
 
         String fileName = args[0];
