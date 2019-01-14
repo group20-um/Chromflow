@@ -59,8 +59,8 @@ public class ChromaticNumber {
      */
     public static Result compute(Type type, Graph graph, boolean runTimeBound, boolean clean) {
         graph.reset();
-        final Result cleanResult = clean ? GraphCleaner.clean(graph) : new Result(null, -1, -1, -1, false);
         GephiConverter.generateGephiFile(graph);
+        final Result cleanResult = clean ? GraphCleaner.clean(graph) : new Result(null, -1, -1, -1, false);
         switch (type) {
 
             case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
