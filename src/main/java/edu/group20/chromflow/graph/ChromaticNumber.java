@@ -226,6 +226,7 @@ public class ChromaticNumber {
         Graph result = graph.clone();
 
         time = System.currentTimeMillis();
+        graph.reset();
         while(exact(graph, nodes, testValue)) {
             TestApp.debug("Exact Test >> The graph CAN be coloured with %d colours.%n", testValue);
             TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", testValue);

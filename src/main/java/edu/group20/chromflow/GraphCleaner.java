@@ -15,7 +15,7 @@ public class GraphCleaner {
     public static ChromaticNumber.Result clean(Graph graph) {
 
         if(graph.isComplete()) {
-            return new ChromaticNumber.Result(graph, graph.getNodes().size() + 1, graph.getNodes().size() + 1, graph.getNodes().size() + 1, true);
+            return new ChromaticNumber.Result(graph, graph.getNodes().size(), graph.getNodes().size(), graph.getNodes().size(), true);
         }
 
         final double inital_nodes = graph.getNodes().size();
@@ -59,33 +59,46 @@ public class GraphCleaner {
 
         //fully nodes
         time = System.currentTimeMillis();
+        // Check if we have at least one fully-connected node
         if(graph.getNodes().values().stream().anyMatch(e -> graph.getDegree(e.getId()) == graph.getNodes().size() - 1)){
 
+            // Store all subgraphs (not only leaves)
             Stack<Graph> subgraphs = new Stack<>();
-            subgraphs.add(graph);
+            graph.reset();
+            subgraphs.add(graph); // add the graph as a starting point
 
+            //Smallest actually contains leaves
             List<Graph> smallest = new LinkedList<>();
+
+            //boolean isFirst = true;
 
             while (!subgraphs.isEmpty()) {
                 Graph g = subgraphs.pop();
 
-                LinkedList<Graph> _S = new LinkedList<>();
+                LinkedList<Graph> _S = new LinkedList<>(); //contains subgraphs
                 divider(_S, g);
 
+                //size == -1 -> we found the smallest subgraph (leave)
                 if (_S.size() == 1) {
                     smallest.addAll(_S);
-                } else {
-                    _S.forEach(e -> e.getMeta().setLevel(e.getMeta().getLevel() + 1));
-                    subgraphs.addAll(_S);
+                }
+                //size > 1 -> we have found additional subgraphs which may or may not contain more subgraphs
+                else {
+                    //isFirst = false;
+                    _S.forEach(e -> e.getMeta().setLevel(g.getMeta().getLevel() + 1)); // increase the levels of the next level of subgraphs
+                    subgraphs.addAll(_S); // add to look at them
                 }
             }
 
             int exact = Integer.MIN_VALUE;
-            TestApp.OUTPUT_ENABLED = false;
+            TestApp.OUTPUT_ENABLED = false; //TODO change back to false
             for(Graph g : smallest) {
                 ChromaticNumber.Result r = ChromaticNumber.compute(ChromaticNumber.Type.EXACT, g, false, false);
-                exact = Math.max(r.getExact() + g.getMeta().getLevel(), exact);
+                exact = Math.max(r.getExact() + g.getMeta().getLevel() + (smallest.size() == 1 ? 1 : 0), exact); //TODO !!!! is this correct?
                 //TODO fixed bug in exact (forgot to reset graph) is +1 actually correct...
+                // graph09.txt and block3_2018_graph20.txt would be wrong otherwise.... IDK
+                // graph09.txt is 16 according to Steven
+                // block3_2018_graph20.txt -> is [8..9] before cleaning so it cannot be 10...
             }
             TestApp.OUTPUT_ENABLED = true;
 
@@ -106,63 +119,58 @@ public class GraphCleaner {
     private static void divider(LinkedList<Graph> subgraphs, Graph graph) {
 
         Stack<Node> hashSet = graph.getNodes().values().stream().filter(e -> graph.getDegree(e.getId()) == graph.getNodes().size() - 1).collect(Collectors.toCollection(Stack::new));
+        if(hashSet.isEmpty()) {
+            subgraphs.add(graph);
+            return;
+        }
+
         while (!hashSet.isEmpty()) {
             Node n = hashSet.pop();
-            graph.getNodes().remove(n.getId());
+            graph.getNodes().remove(n.getId()); //remove the fully-connected node
 
             List<Node> neighbours = graph.getNeighbours(n);
-            graph.getEdges().remove(n.getId());
+            graph.getEdges().remove(n.getId()); //remove all the edges from fully-connected node -> B
 
+            // remove all the edges from B -> fully-connected node
             neighbours.forEach(neighbour -> graph.getEdges(neighbour.getId()).remove(n.getId()));
         }
 
-
-        Stack<Graph> check = new Stack<>();
-        check.add(graph);
-        while (!check.isEmpty()) {
-            Graph g = check.pop();
-            g.reset();
-            for (Node node : g.getNodes().values()) {
-                if (node.getValue() != -1) continue;
-                Graph ng = discoverGraph(g, node);
-
-                if (ng.getNodes().size() != g.getNodes().size()) {
-                    check.add(ng);
-                } else {
-                    subgraphs.add(ng);
-                }
-            }
+        for (Node node : graph.getNodes().values()) {
+            // n.v != -1 means that it already belongs to another subgraph so we can skip it
+            if (node.getValue() != -1) continue;
+            subgraphs.add(discoverGraph(graph, node));
         }
-
-
 
     }
 
     private static Graph discoverGraph(Graph og, Node origin) {
 
-        Graph graph = new Graph();
-        graph.getMeta().setLevel(og.getMeta().getLevel());
+        // create a new graph
+        Graph newGraph = new Graph();
+        newGraph.getMeta().setLevel(og.getMeta().getLevel()); //inherit level from old graph
+
+        // DFS, nodes that we have still to visit
         Stack<Node> visit = new Stack<>();
-        visit.add(origin);
+        visit.add(origin); //start at the origin
 
         while (!(visit.isEmpty())) {
             Node n = visit.pop();
-            n.setValue(0);
+            n.setValue(0); // 0 -> means that we have visited this node
 
-            graph.addNode(n.getId(), -1);
+            newGraph.addNode(n.getId(), -1); // new graph add the node
 
-            List<Node> neighbours = og.getNeighbours(n);
+            List<Node> neighbours = og.getNeighbours(n); //get all neighbours from the original graph
             neighbours.forEach(neighbour -> {
-                if(!graph.hasNode(neighbour.getId())) {
-                    graph.addNode(neighbour.getId(), -1);
+                if(!newGraph.hasNode(neighbour.getId())) { // new graph doesn't have neighbour yet so just add it to avoid errors
+                    newGraph.addNode(neighbour.getId(), -1);
                 }
 
-                graph.addEdge(neighbour.getId(), n.getId(), true);
+                newGraph.addEdge(neighbour.getId(), n.getId(), true); //add neighbour N -> neighbour, neighbour -> N
             });
-            visit.addAll(neighbours.stream().filter(e -> e.getValue() == -1).collect(Collectors.toList()));
+            visit.addAll(neighbours.stream().filter(e -> e.getValue() == -1).collect(Collectors.toList())); //go to visit all its neighbours
         }
 
-        return graph;
+        return newGraph;
     }
 
 }

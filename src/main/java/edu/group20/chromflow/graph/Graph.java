@@ -39,7 +39,6 @@ public class Graph implements Cloneable {
     }
 
     public void reset() {
-        this.meta = new Meta();
         this.nodes.values().forEach(e -> e.setValue(-1));
     }
 
@@ -253,7 +252,7 @@ public class Graph implements Cloneable {
     }
 
     public boolean isComplete(){
-        return nodes.keySet().stream().noneMatch(id -> edges.get(id).size() != nodes.size() - 1);
+        return nodes.keySet().stream().allMatch(id -> edges.get(id).size() == nodes.size() - 1);
     }
 
     public boolean hasCycle(){
