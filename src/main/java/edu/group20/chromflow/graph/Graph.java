@@ -10,6 +10,8 @@ import static edu.group20.chromflow.graph.Node.Edge;
 
 public class Graph implements Cloneable {
 
+    private Meta meta = new Meta();
+
     private Map<Integer, Node> nodes = new HashMap<>();
     private Map<Integer, Map<Integer, Edge>> edges = new HashMap<>();
 
@@ -17,9 +19,12 @@ public class Graph implements Cloneable {
     private int sizeCircle=0;
     private ArrayList<Integer> sizes=new ArrayList<>();
 
-    public Meta meta = new Meta();
 
     public Graph() {}
+
+    public Meta getMeta() {
+        return this.meta;
+    }
 
     public int getEdgeCount() {
         return edges.values().stream().mapToInt(Map::size).sum();
@@ -34,6 +39,7 @@ public class Graph implements Cloneable {
     }
 
     public void reset() {
+        this.meta = new Meta();
         this.nodes.values().forEach(e -> e.setValue(-1));
     }
 
@@ -349,7 +355,18 @@ public class Graph implements Cloneable {
 
 
     public static class Meta {
-        public int level = 0;
+        private int level = 0;
+
+        public Meta() {}
+
+        public int getLevel() {
+            return this.level;
+        }
+
+        public void setLevel(int level) {
+            this.level = level;
+        }
+
     }
 
 }

@@ -153,10 +153,11 @@ public class ChromaticNumber {
 
         if(isBipartie(graph)) {
             return new Result(graph, 2, 2, 2, true);
+        } else {
+            graph.reset();
         }
 
         //---
-        graph.reset();
         long time = System.currentTimeMillis();
         final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC);
         TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
@@ -281,6 +282,8 @@ public class ChromaticNumber {
         if(colours == 2) {
             if(isBipartie(graph) /*&&graph.hasOnlyEvenCycles() */) { // TODO get Graph#hasOnlyEvenCycles
                 return true;
+            } else {
+                graph.reset();
             }
         }
 
@@ -320,11 +323,12 @@ public class ChromaticNumber {
         }*/
 
         boolean sc = true;
-        for(Node n : graph.getNodes().values())
-            if(n.getValue() == -1) {
+        for(Node n : nodes) {
+            if (n.getValue() == -1) {
                 sc = false;
                 break;
             }
+        }
         if(sc) return true;
 
         //--- Check this note for all colours
@@ -332,9 +336,7 @@ public class ChromaticNumber {
             if(exactIsColourAvailable(graph, node, c)) {
                 node.setValue(c);
 
-                Node next = graph.getNextAvailableNode(node);
                 if(list_index + 1 >= nodes.size() || exact(graph, color_nb,  nodes.get(list_index + 1), nodes, list_index + 1)) {
-                //if(next == null || exact(graph, color_nb, next, null, -1)) {
                     return true;
                 }
 

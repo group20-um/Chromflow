@@ -39,14 +39,24 @@ public class GraphCleaner {
             graph.getNodes().remove(fromId);
 
         }
+        TestApp.debug("Cleaning (%dms) >> Removing singles, nodes: %d (%.6f%%), edges: %d (%.6f%%), density: %.6f%% (%.6f%%) %n",
+                (System.currentTimeMillis() - time),
+                graph.getNodes().size(),
+                (1D - (graph.getNodes().size() / inital_nodes)) * 100,
+                graph.getEdgeCount(),
+                (1D - (graph.getEdgeCount() / inital_edges)) * 100,
+                graph.getDensity() * 100,
+                inital_density * 100
+        );
+
 
         //--- Tree
         if(inital_nodes > 0 && graph.getNodes().isEmpty()) {
             return new ChromaticNumber.Result(graph, 2, 2, 2, true);
         }
 
-
         //fully nodes
+        time = System.currentTimeMillis();
         if(graph.getNodes().values().stream().anyMatch(e -> graph.getDegree(e.getId()) == graph.getNodes().size() - 1)){
 
             Stack<Graph> subgraphs = new Stack<>();
@@ -63,34 +73,27 @@ public class GraphCleaner {
                 if (_S.size() == 1) {
                     smallest.addAll(_S);
                 } else {
-                    _S.forEach(e -> e.meta.level = e.meta.level + 1);
+                    _S.forEach(e -> e.getMeta().setLevel(e.getMeta().getLevel() + 1));
                     subgraphs.addAll(_S);
                 }
             }
 
-            int maxExact = Integer.MIN_VALUE;
+            int exact = Integer.MIN_VALUE;
             for(Graph g : smallest) {
                 ChromaticNumber.Result r = ChromaticNumber.compute(ChromaticNumber.Type.EXACT, g, false, false);
-                int exact = r.getExact() + g.meta.level + 1;
-                if(exact > maxExact) {
-                    maxExact = exact;
-                }
+                exact = Math.max(r.getExact() + g.getMeta().getLevel(), exact);
+                //TODO fixed bug in exact (forgot to reset graph) is +1 actually correct...
             }
 
-            //final int exact = maxExact + (int) Math.ceil(Math.log(smallest.size()) / Math.log(2));
-            return new ChromaticNumber.Result(graph, maxExact, -1, -1, true);
+            TestApp.debug("Cleaning (%dms) >> Splitting fully-connected nodes, sub-graphs: %d %n",
+                    (System.currentTimeMillis() - time),
+                    smallest.size()
+            );
+
+            return new ChromaticNumber.Result(graph, exact, -1, -1, true);
 
         }
 
-        TestApp.debug("Cleaning (%dms) >> Removing singles, nodes: %d (%.6f%%), edges: %d (%.6f%%), density: %.6f%% (%.6f%%) %n",
-                (System.currentTimeMillis() - time),
-                graph.getNodes().size(),
-                (1D - (graph.getNodes().size() / inital_nodes)) * 100,
-                graph.getEdgeCount(),
-                (1D - (graph.getEdgeCount() / inital_edges)) * 100,
-                graph.getDensity() * 100,
-                inital_density * 100
-        );
 
         return new ChromaticNumber.Result(null, -1, -1, -1, false);
     }
@@ -134,7 +137,7 @@ public class GraphCleaner {
     private static Graph discoverGraph(Graph og, Node origin) {
 
         Graph graph = new Graph();
-        graph.meta.level = og.meta.level;
+        graph.getMeta().setLevel(og.getMeta().getLevel());
         Stack<Node> visit = new Stack<>();
         visit.add(origin);
 
