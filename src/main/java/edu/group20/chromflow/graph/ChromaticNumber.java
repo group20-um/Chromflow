@@ -148,13 +148,11 @@ public class ChromaticNumber {
     private static Result exactTest(Graph graph, Result cleanResult, boolean runTimeBound) {
 
         if(cleanResult.isReady()) {
+            TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", cleanResult.getUpper());
+            TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", cleanResult.getLower());
+            TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", cleanResult.getExact());
             return cleanResult;
-        }
 
-        if(isBipartie(graph)) {
-            return new Result(graph, 2, 2, 2, true);
-        } else {
-            graph.reset();
         }
 
         //---

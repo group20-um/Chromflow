@@ -4,7 +4,9 @@ import edu.group20.chromflow.graph.ChromaticNumber;
 import edu.group20.chromflow.graph.Graph;
 import edu.group20.chromflow.graph.Node;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Stack;
 import java.util.stream.Collectors;
 
 public class GraphCleaner {
@@ -79,18 +81,20 @@ public class GraphCleaner {
             }
 
             int exact = Integer.MIN_VALUE;
+            TestApp.OUTPUT_ENABLED = false;
             for(Graph g : smallest) {
                 ChromaticNumber.Result r = ChromaticNumber.compute(ChromaticNumber.Type.EXACT, g, false, false);
                 exact = Math.max(r.getExact() + g.getMeta().getLevel(), exact);
                 //TODO fixed bug in exact (forgot to reset graph) is +1 actually correct...
             }
+            TestApp.OUTPUT_ENABLED = true;
 
             TestApp.debug("Cleaning (%dms) >> Splitting fully-connected nodes, sub-graphs: %d %n",
                     (System.currentTimeMillis() - time),
                     smallest.size()
             );
 
-            return new ChromaticNumber.Result(graph, exact, -1, -1, true);
+            return new ChromaticNumber.Result(graph, exact, exact, exact, true);
 
         }
 

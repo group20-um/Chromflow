@@ -197,12 +197,10 @@ public class Graph implements Cloneable {
     public boolean isBipartite( List<Node> parent){
 
         if(this.getNodes().size()<2){ //probably check somewhere else
-            System.out.println("Is NOT bipartite");
             return false;
         }
 
         if(this.isColored()){
-            System.out.println("Is bipartite");
             return true;
         }
 
@@ -211,7 +209,6 @@ public class Graph implements Cloneable {
         for(int i=0; i<parent.size();i++){
 
             if(hasNeighbourSameColour( parent.get(i))){
-                System.out.println("Is NOT bipartite");
                 return false;
             }
             newParents.addAll(this.getNeighbours(parent.get(i)));
@@ -256,15 +253,7 @@ public class Graph implements Cloneable {
     }
 
     public boolean isComplete(){
-        boolean complete = nodes.keySet().stream().noneMatch(id -> edges.get(id).size() != nodes.size() - 1);
-
-        if (complete){
-            System.out.println("IS complete");
-        }
-        else {
-            System.out.println("Not complete");
-        }
-        return complete;
+        return nodes.keySet().stream().noneMatch(id -> edges.get(id).size() != nodes.size() - 1);
     }
 
     public boolean hasCycle(){
@@ -291,14 +280,7 @@ public class Graph implements Cloneable {
 
         }
 
-        if(cyclic){
-            System.out.println("IS cyclic");
-            return true;
-        }
-        else{
-            System.out.println("Not cyclic");
-        }
-        return false;
+        return cyclic;
     }
 
     public boolean hasOnlyEvenCycles(){
