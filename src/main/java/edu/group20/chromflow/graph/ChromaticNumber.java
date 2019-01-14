@@ -2,6 +2,7 @@ package edu.group20.chromflow.graph;
 
 import Jama.Matrix;
 import edu.group20.chromflow.GephiConverter;
+import edu.group20.chromflow.GraphCleaner;
 import edu.group20.chromflow.TestApp;
 import edu.group20.chromflow.util.Mergesort;
 
@@ -39,69 +40,6 @@ public class ChromaticNumber {
         EXACT
     }
 
-    private static void clean(Graph graph) {
-
-        final double inital_nodes = graph.getNodes().size();
-        final double inital_density = graph.getDensity();
-        final double inital_edges = graph.getEdgeCount();
-
-        // remove singles
-        long time = System.currentTimeMillis();
-        Stack<Integer> singleNodes = graph.getNodes().keySet().stream().filter(id -> graph.getDegree(id) <= 1).collect(Collectors.toCollection(Stack::new));
-        while (!singleNodes.isEmpty()) {
-            final int fromId = singleNodes.pop();
-            final int degree = graph.getEdges(fromId).size();
-
-            if (degree == 1) {
-                int toId = graph.getEdges(fromId).values().stream().findAny().get().getTo().getId();
-                graph.getEdges(toId).remove(fromId);
-
-                if(graph.getEdges(toId).size() == 1) {
-                    singleNodes.add(toId);
-                }
-            }
-            graph.getEdges().remove(fromId);
-            graph.getNodes().remove(fromId);
-
-        }
-
-        /*
-        while (graph.getNodes().isEmpty()) { //TODO
-            HashSet<Node> clique = new HashSet<>();
-            int min = bronKerboschWithPivot(
-                    graph,
-                    clique,
-                    graph.getNodes().values().stream().collect(Collectors.toCollection(HashSet::new)),
-                    new HashSet<>());
-            if(min == 0) break;
-
-            clique.forEach(node -> {
-
-            });
-            TestApp.debugln("clique >>" + min + " <-> " + clique.size());
-        }
-
-        int min = Integer.MAX_VALUE;
-        int max = Integer.MIN_VALUE;
-        for (Integer id : graph.getNodes().keySet()) {
-            min = Math.min(min, graph.getDegree(id));
-            max = Math.max(max, graph.getDegree(id));
-        }
-        TestApp.debugln("minmax>>" + min + " <> " + max);
-        */
-
-
-        TestApp.debug("Cleaning (%dms) >> Removing singles, nodes: %d (%.6f%%), edges: %d (%.6f%%), density: %.6f%% (%.6f%%) %n",
-                (System.currentTimeMillis() - time),
-                graph.getNodes().size(),
-                (1D - (graph.getNodes().size() / inital_nodes)) * 100,
-                graph.getEdgeCount(),
-                (1D - (graph.getEdgeCount() / inital_edges)) * 100,
-                graph.getDensity() * 100,
-                inital_density * 100
-            );
-    }
-
     /**
      * Computes the requested data in a async-fashion, and supplies it back via a callback.
      * @param type The type of information that gets requested.
@@ -109,7 +47,7 @@ public class ChromaticNumber {
      * @param consumer The consumers gets called when a result is ready.
      */
     public static void computeAsync(Type type, Graph graph, Consumer<Result> consumer) {
-        CompletableFuture.supplyAsync(() -> compute(type, graph, false), schedule).thenAccept(consumer);
+        CompletableFuture.supplyAsync(() -> compute(type, graph, false, true), schedule).thenAccept(consumer);
     }
 
     /**
@@ -119,15 +57,15 @@ public class ChromaticNumber {
      * @param runTimeBound Terminates the algorithm after a time limit.
      * @return Never null, always a result.
      */
-    public static Result compute(Type type, Graph graph, boolean runTimeBound) {
+    public static Result compute(Type type, Graph graph, boolean runTimeBound, boolean clean) {
         graph.reset();
-        clean(graph);
+        final Result cleanResult = clean ? GraphCleaner.clean(graph) : new Result(null, -1, -1, -1, false);
         GephiConverter.generateGephiFile(graph);
         switch (type) {
 
             case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
             case UPPER: return runTimeBound ? limitedTimeUpper(graph) : new Result(null,-1, -1, upperBound(graph, UpperBoundMode.DEGREE_DESC), true);
-            case EXACT: return runTimeBound ? limitedTimeExactTest(graph) : exactTest(graph, false);
+            case EXACT: return runTimeBound ? limitedTimeExactTest(graph, cleanResult) : exactTest(graph, cleanResult, false);
 
         }
         throw new IllegalStateException();
@@ -141,11 +79,11 @@ public class ChromaticNumber {
      * @param graph The graph to run the computation on.
      * @return Never null, the result.
      */
-    private static Result limitedTimeExactTest(Graph graph) {
+    private static Result limitedTimeExactTest(Graph graph, Result cleanResult) {
         return timeBoundMethodExecution(new MethodRunnable() {
             @Override
             public void run() {
-                this.setResult(exactTest(graph, true));
+                this.setResult(exactTest(graph, cleanResult,true));
             }
         }, TIME_LIMIT_EXACT);
     }
@@ -207,7 +145,12 @@ public class ChromaticNumber {
 
 
     // --- EXACT_EXPERIMENTAL SECTION ---
-    private static Result exactTest(Graph graph, boolean runTimeBound) {
+    private static Result exactTest(Graph graph, Result cleanResult, boolean runTimeBound) {
+
+        if(cleanResult.isReady()) {
+            return cleanResult;
+        }
+
         //---
         graph.reset();
         long time = System.currentTimeMillis();
@@ -556,9 +499,6 @@ public class ChromaticNumber {
     }
 
     //--- LOWER BOUND --
-    /**
-     * Calls and returns {@link ChromaticNumber#bronKerbosch(Graph, List, List, List)}.
-     */
     private static int lowerBound(Graph graph) {
         return bronKerboschWithPivot(graph, new HashSet<>(), new HashSet<>(graph.getNodes().values()), new HashSet<>());
     }

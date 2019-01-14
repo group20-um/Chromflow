@@ -17,6 +17,8 @@ public class Graph implements Cloneable {
     private int sizeCircle=0;
     private ArrayList<Integer> sizes=new ArrayList<>();
 
+    public Meta meta = new Meta();
+
     public Graph() {}
 
     public int getEdgeCount() {
@@ -343,6 +345,11 @@ public class Graph implements Cloneable {
         });
 
         return adjacentMatrix;
+    }
+
+
+    public static class Meta {
+        public int level = 0;
     }
 
 }

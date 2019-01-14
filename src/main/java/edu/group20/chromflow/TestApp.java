@@ -12,12 +12,11 @@ public class TestApp {
 
     public final static boolean KELK_MODE = false;
 
-
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
 
         // www.cs.uu.nl/education/scripties/pdf.php?SID=INF/SCR-2009-095
 
-        args = new String[] {"src/main/java/data/block3_2018_graph20.txt"};
+        args = new String[] {"src/main/java/data/block3_2018_graph16.txt"};
         Graph graph = new Graph();
 
         String fileName = args[0];
@@ -63,9 +62,7 @@ public class TestApp {
             e.printStackTrace();
         }
 
-        long time = System.currentTimeMillis();
-        debug("Result>> %s%n", ChromaticNumber.compute(ChromaticNumber.Type.EXACT, graph, false));
-        debug("Result>> %dms%n", System.currentTimeMillis() - time);
+        debug("Result>> %s%n", ChromaticNumber.compute(ChromaticNumber.Type.EXACT, graph, false, true));
 
     }
 
@@ -76,8 +73,6 @@ public class TestApp {
     public static void debugln(String message) {
         if(!KELK_MODE) System.out.printf("%s%n", message);
     }
-
-
 
     public static void kelkOutput(String format, Object... vars) {
         if(KELK_MODE) System.out.printf(format, vars);
