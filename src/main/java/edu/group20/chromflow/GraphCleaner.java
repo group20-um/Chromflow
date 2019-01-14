@@ -12,6 +12,10 @@ public class GraphCleaner {
 
     public static ChromaticNumber.Result clean(Graph graph) {
 
+        if(graph.isComplete()) {
+            return new ChromaticNumber.Result(graph, graph.getNodes().size() + 1, graph.getNodes().size() + 1, graph.getNodes().size() + 1, true);
+        }
+
         final double inital_nodes = graph.getNodes().size();
         final double inital_density = graph.getDensity();
         final double inital_edges = graph.getEdgeCount();
@@ -44,6 +48,7 @@ public class GraphCleaner {
 
         //fully nodes
         if(graph.getNodes().values().stream().anyMatch(e -> graph.getDegree(e.getId()) == graph.getNodes().size() - 1)){
+
             Stack<Graph> subgraphs = new Stack<>();
             subgraphs.add(graph);
 

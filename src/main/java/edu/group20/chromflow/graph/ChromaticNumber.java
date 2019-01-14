@@ -151,6 +151,10 @@ public class ChromaticNumber {
             return cleanResult;
         }
 
+        if(isBipartie(graph)) {
+            return new Result(graph, 2, 2, 2, true);
+        }
+
         //---
         graph.reset();
         long time = System.currentTimeMillis();
