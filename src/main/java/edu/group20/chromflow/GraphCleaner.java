@@ -92,10 +92,10 @@ public class GraphCleaner {
             }
 
             int exact = Integer.MIN_VALUE;
-            TestApp.OUTPUT_ENABLED = false; //TODO change back to false
+            TestApp.OUTPUT_ENABLED = false;
             for(Graph g : smallest) {
                 ChromaticNumber.Result r = ChromaticNumber.compute(ChromaticNumber.Type.EXACT, g, false, false);
-                exact = Math.max(r.getExact() + g.getMeta().getLevel() + (smallest.size() == 1 ? 1 : 0), exact); //TODO !!!! is this correct?
+                exact = Math.max(r.getExact() + g.getMeta().getLevel() + (smallest.size() == 1 ? 1 : 0), exact);//TODO !!!! is this correct?
                 //TODO fixed bug in exact (forgot to reset graph) is +1 actually correct...
                 // graph09.txt and block3_2018_graph20.txt would be wrong otherwise.... IDK
                 // graph09.txt is 16 according to Steven
