@@ -11,13 +11,8 @@ public class TestApp {
 
     public static void main(String[] args) {
 
-        // www.cs.uu.nl/education/scripties/pdf.php?SID=INF/SCR-2009-095
-
-        args = new String[] {"src/main/java/data/graph02.txt"};
-        long time = System.currentTimeMillis();
+        args = new String[] {"src/main/java/data/block3_2018_graph20.txt"};
         Graph graph = GraphReader.parseGraph(args[0]);
-        debug("Build Graph (%dms) >> Graph (%s) parsed %d vertices, %d edges and a density of %.6f%%.%n",
-                (System.currentTimeMillis() - time), args[0], graph.getNodes().size(), graph.getEdgeCount(), graph.getDensity() * 100);
 
         debug("Result>> %s%n", ChromaticNumber.compute(ChromaticNumber.Type.EXACT, graph, false, true));
 

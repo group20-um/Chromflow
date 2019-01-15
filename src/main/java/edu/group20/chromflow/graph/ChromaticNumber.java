@@ -10,12 +10,13 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class ChromaticNumber {
 
-    // overview >> https://thorehusfeldt.files.wordpress.com/2010/08/gca.pdf
+    // overview >>
     // old & maybe complicated >> https://sci-hub.se/https://dl.acm.org/citation.cfm?id=321837
     // simple overview >> https://www.ics.uci.edu/~eppstein/pubs/Epp-WADS-01-slides.pdf
     // max independent sets >> https://www.cs.rit.edu/~ark/fall2016/654/team/11/report.pdf
@@ -59,8 +60,9 @@ public class ChromaticNumber {
      */
     public static Result compute(Type type, Graph graph, boolean runTimeBound, boolean clean) {
         graph.reset();
-        GephiConverter.generateGephiFile(graph);
         final Result cleanResult = clean ? GraphCleaner.clean(graph) : new Result(null, -1, -1, -1, false);
+        GephiConverter.generateGephiFile(graph);
+
         switch (type) {
 
             case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
@@ -161,13 +163,14 @@ public class ChromaticNumber {
         TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
         TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", upper);
 
-        int lower = 1;
+        int lower = graph.getEdges().isEmpty() ? 1 : 2;
         TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
         if(upper > 4) {
             graph.reset();
             time = System.currentTimeMillis();
-            lower = TestLowerBound.search(graph);
+            //lower = testLowerBound(graph);
+            lower = lowerBound(graph);
             TestApp.debug("Lower bound (%dms) >> %d%n", (System.currentTimeMillis() - time), lower);
             TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
@@ -279,7 +282,7 @@ public class ChromaticNumber {
 
         //--- 2 isBipartie
         if(colours == 2) {
-            if(isBipartie(graph) /*&&graph.hasOnlyEvenCycles() */) { // TODO get Graph#hasOnlyEvenCycles
+            if(nodes.size() % 2 == 0 && GraphStructures.isBipartiteEigenValue(graph) /*&&graph.hasOnlyEvenCycles() */) { // TODO get Graph#hasOnlyEvenCycles
                 return true;
             } else {
                 graph.reset();
@@ -452,57 +455,6 @@ public class ChromaticNumber {
 
     }
 
-    private static boolean isBipartie(Graph graph) {
-        Stack<Node> unvisited = graph.getNodes().values().stream()
-                .sorted(Comparator.comparingInt(o -> -graph.getEdges(o.getId()).size()))
-                .collect(Collectors.toCollection(Stack::new));
-
-        int max = 0;
-        while (!unvisited.isEmpty()){
-            Node node = unvisited.pop();
-
-            //--- What colours does its neighbours have?
-            Collection<Node.Edge> edges = graph.getEdges(node.getId()).values();
-            List<Integer> colours = edges.stream()
-                    .filter(edge -> edge.getTo().getValue() != -1)
-                    .map(edge -> edge.getTo().getValue())
-                    .collect(Collectors.toList());
-
-            //--- No colours -> first node being visited in the graph
-            if (colours.isEmpty()) {
-                node.setValue(0);
-            }
-            //--- At least one colour -> not the first node anymore
-            else {
-
-                //--- "Highest"  value/colour adjacent to the node
-                final int maxColour = colours.stream().max(Comparator.naturalOrder()).get();
-
-                int colour = 0; // Lowest value we can chose for a valid colour
-
-                //--- try to ideally find an existing colour that we can reuse
-                while (colour <= maxColour) {
-                    if (!colours.contains(colour)) {
-                        break;
-                    }
-                    colour++;
-                }
-
-                node.setValue(colour);
-                max = Math.max(max, colour);
-
-                if(max > 1) {
-                    return false;
-                }
-
-            }
-
-        }
-
-        return true;
-
-    }
-
     //--- LOWER BOUND --
     private static int lowerBound(Graph graph) {
         return bronKerboschWithPivot(graph, new HashSet<>(), new HashSet<>(graph.getNodes().values()), new HashSet<>());
@@ -549,7 +501,7 @@ public class ChromaticNumber {
         return max;
     }
 
-    private static int bronKerboschWithPivot(Graph graph, HashSet<Node> _R, HashSet<Node> _P, HashSet<Node> _X) {
+    public static int bronKerboschWithPivot(Graph graph, HashSet<Node> _R, HashSet<Node> _P, HashSet<Node> _X) {
         int max = Integer.MIN_VALUE;
         if(_P.isEmpty() && _X.isEmpty()) {
             max = Math.max(max, _R.size());
@@ -601,6 +553,39 @@ public class ChromaticNumber {
 
         return max;
     }
+
+    private static int testLowerBound(Graph g){
+        AtomicInteger maxSize = new AtomicInteger(Integer.MIN_VALUE);
+        testLowerBoundExpand(g, new HashSet<>(), new HashSet<>(g.getNodes().values()), maxSize);
+        return maxSize.get();
+
+    }
+
+    private static void testLowerBoundExpand(Graph graph, HashSet<Node> C, HashSet<Node> set, AtomicInteger maxSize){
+        Iterator<Node> iterator = set.iterator();
+        while (iterator.hasNext()){
+            if (C.size() + set.size() <= maxSize.get()) {
+                break;
+            }
+
+            Node node = iterator.next();
+            C.add(node);
+            HashSet<Node> newList = set.stream()
+                    .filter(w -> graph.hasEdge(node.getId(), w.getId()))
+                    .collect(Collectors.toCollection(HashSet::new));
+
+            if (newList.isEmpty()) {
+                maxSize.set(Math.max(maxSize.get(), C.size()));
+            } else {
+                testLowerBoundExpand(graph, C, newList, maxSize);
+            }
+
+            C.remove(node);
+            iterator.remove();
+
+        }
+    }
+
 
     //--- Utility
 
