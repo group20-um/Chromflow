@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement />
+  <nodes>
+    <node x="161.0" y="380.0">edu.group20.chromflow.util.Mergesort</node>
+    <node x="122.0" y="153.0">edu.group20.chromflow.graph.UpperBoundMode</node>
+    <node x="0.0" y="153.0">edu.group20.chromflow.graph.Node</node>
+    <node x="60.0" y="0.0">edu.group20.chromflow.graph.ChromaticNumber</node>
+    <node x="94.0" y="79.0">edu.group20.chromflow.graph.ChromaticNumber.Result</node>
+    <node x="313.0" y="153.0">edu.group20.chromflow.graph.TestLowerBound</node>
+    <node x="0.0" y="306.0">edu.group20.chromflow.graph.GraphStructures</node>
+    <node x="0.0" y="380.0">edu.group20.chromflow.util.GraphReader</node>
+    <node x="0.0" y="454.0">edu.group20.chromflow.graph.RLF</node>
+    <node x="308.0" y="380.0">edu.group20.chromflow.TestApp</node>
+    <node x="194.0" y="79.0">edu.group20.chromflow.graph.ChromaticNumber.MethodRunnable</node>
+    <node x="354.0" y="306.0">edu.group20.chromflow.GraphCleaner</node>
+    <node x="381.5" y="79.0">edu.group20.chromflow.graph.Graph.Meta</node>
+    <node x="0.0" y="79.0">edu.group20.chromflow.graph.ChromaticNumber.Type</node>
+    <node x="178.0" y="306.0">edu.group20.chromflow.GephiConverter</node>
+    <node x="1.5" y="232.0">edu.group20.chromflow.graph.Node.Edge</node>
+    <node x="379.0" y="0.0">edu.group20.chromflow.graph.Graph</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="edu.group20.chromflow.graph.Graph.Meta" target="edu.group20.chromflow.graph.Graph">
+      <point x="0.0" y="-14.5" />
+      <point x="0.0" y="14.5" />
+    </edge>
+    <edge source="edu.group20.chromflow.graph.ChromaticNumber.MethodRunnable" target="edu.group20.chromflow.graph.ChromaticNumber">
+      <point x="0.0" y="-14.5" />
+      <point x="264.0" y="54.0" />
+      <point x="183.33333333333334" y="54.0" />
+      <point x="49.33333333333334" y="14.5" />
+    </edge>
+    <edge source="edu.group20.chromflow.graph.ChromaticNumber.Type" target="edu.group20.chromflow.graph.ChromaticNumber">
+      <point x="0.0" y="-14.5" />
+      <point x="37.0" y="54.0" />
+      <point x="84.66666666666666" y="54.0" />
+      <point x="-49.33333333333334" y="14.5" />
+    </edge>
+    <edge source="edu.group20.chromflow.graph.Node.Edge" target="edu.group20.chromflow.graph.Node">
+      <point x="0.0" y="-14.5" />
+      <point x="0.0" y="14.5" />
+    </edge>
+    <edge source="edu.group20.chromflow.graph.ChromaticNumber.Result" target="edu.group20.chromflow.graph.ChromaticNumber">
+      <point x="0.0" y="-14.5" />
+      <point x="0.0" y="14.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="492.5" y="247.0" />
+  <SelectedNodes />
+  <Categories>
+    <Category>Inner Classes</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+
