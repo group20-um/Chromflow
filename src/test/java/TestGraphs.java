@@ -34,11 +34,34 @@ public class TestGraphs {
             Assertions.assertNotNull(g);
 
             ChromaticNumber.Result r = ChromaticNumber.compute(ChromaticNumber.Type.EXACT, g, false, true);
-            Assertions.assertEquals(r.getExact(), results[i-1], String.format("Graph %02d", i));
-
+            Assertions.assertEquals(results[i-1], r.getExact(), String.format("Graph %02d", i));
 
         }
     }
 
+    @Test
+    public void testBenchmarkGraphs() {
+
+        final String[] graphs = new String[] {
+                "1-FullIns_3", "2-FullIns_3", "2-Insertions_3", "anna", "david", "fpsol2.i.3", "games120", "homer", "huck", "jean", "le450_25a", "le450_25b", "miles1500", "miles250", "miles500", "mulsol.i.1", "mulsol.i.2", "mulsol.i.3", "mulsol.i.4", "mulsol.i.5", "myciel3", "myciel4", "queen5_5", "queen6_6", "r125.1", "r250.1", "zeroin.i.1", "zeroin.i.2", "zeroin.i.3", "1-FullIns_4"
+        };
+
+        //24
+        final int[] exactValues = {
+                4, 5, 4, 11, 11, 30, 9, 13, 11, 10, 25, 25, 73, 8, 20, 49, 31, 31, 31, 31, 4, 5, 5, 7, 5, 8, 49, 30, 30, 5
+        };
+
+        for (int i = 0; i < graphs.length; i++) {
+            final String graph = graphs[i];
+
+            Graph g = GraphReader.parseGraph(String.format("src/main/java/data/benchmark/%s.col", graph));
+            Assertions.assertNotNull(g);
+
+            ChromaticNumber.Result r = ChromaticNumber.compute(ChromaticNumber.Type.EXACT, g, false, true);
+            Assertions.assertEquals(exactValues[i], r.getExact(), String.format("Graph %s", graph));
+
+        }
+
+    }
 
 }
