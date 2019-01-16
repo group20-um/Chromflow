@@ -15,11 +15,6 @@
             <version>1.0.3</version>
         </dependency>
         <dependency>
-            <groupId>com.zigurs.karlis.utils</groupId>
-            <artifactId>magicsort</artifactId>
-            <version>0.2</version>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>5.4.0-M1</version>

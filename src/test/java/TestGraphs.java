@@ -33,7 +33,7 @@ public class TestGraphs {
             Graph g = GraphReader.parseGraph(String.format("src/main/java/data/graph%02d.txt", i));
             Assertions.assertNotNull(g);
 
-            ChromaticNumber.Result r = ChromaticNumber.compute(ChromaticNumber.Type.EXACT, g, false, true);
+            ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true);
             Assertions.assertEquals(results[i-1], r.getExact(), String.format("Graph %02d", i));
 
         }
@@ -57,11 +57,33 @@ public class TestGraphs {
             Graph g = GraphReader.parseGraph(String.format("src/main/java/data/benchmark/%s.col", graph));
             Assertions.assertNotNull(g);
 
-            ChromaticNumber.Result r = ChromaticNumber.compute(ChromaticNumber.Type.EXACT, g, false, true);
+            ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true);
             Assertions.assertEquals(exactValues[i], r.getExact(), String.format("Graph %s", graph));
 
         }
 
+    }
+
+    @Test
+    public void testGraphsFromBlock3() {
+        int[] results = new int[] {
+            3, -1, -1, -1, 2, 3, -1, 98, -1, 3, 15, 2, -1, -1, -1, -1, 8, 10, 11, 9
+        };
+        HashSet<Integer> ignore = new HashSet<>(Arrays.asList(
+                2,3,4,7,9,13,14,15,16
+        ));
+
+        for (int i = 1; i <= 20; i++) {
+
+            if(ignore.contains(i))continue;
+
+            Graph g = GraphReader.parseGraph(String.format("src/main/java/data/block3_2018_graph%02d.txt", i));
+            Assertions.assertNotNull(g);
+
+            ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true);
+            Assertions.assertEquals(results[i-1], r.getExact(), String.format("Graph %02d", i));
+
+        }
     }
 
 }

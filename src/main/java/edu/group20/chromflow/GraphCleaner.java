@@ -2,6 +2,7 @@ package edu.group20.chromflow;
 
 import edu.group20.chromflow.graph.ChromaticNumber;
 import edu.group20.chromflow.graph.Graph;
+import edu.group20.chromflow.graph.GraphStructures;
 import edu.group20.chromflow.graph.Node;
 
 import java.util.*;
@@ -10,17 +11,18 @@ import java.util.stream.Collectors;
 public class GraphCleaner {
 
 
-    public static ChromaticNumber.Result clean(Graph graph) {
+
+    public static Result clean(Graph graph) {
 
         if(graph.isComplete()) {
             TestApp.debug("Cleaning (0ms) >> Detected complete graph.%n");
-            return new ChromaticNumber.Result(graph, graph.getNodes().size(), graph.getNodes().size(), graph.getNodes().size(), true);
+            return new Result(graph.getNodes().size(), graph.getNodes().size(), graph.getNodes().size());
         }
-
         long time = System.currentTimeMillis();
 
         //removing single nodes
         {
+            time = System.currentTimeMillis();
             final double inital_nodes = graph.getNodes().size();
             final double inital_density = graph.getDensity();
             final double inital_edges = graph.getEdgeCount();
@@ -55,7 +57,7 @@ public class GraphCleaner {
 
             //--- Tree
             if (inital_nodes > 0 && graph.getNodes().isEmpty()) {
-                return new ChromaticNumber.Result(graph, 2, 2, 2, true);
+                return new Result(2, 2, 2);
             }
         }
 
@@ -96,7 +98,7 @@ public class GraphCleaner {
                 int exact = Integer.MIN_VALUE;
                 TestApp.OUTPUT_ENABLED = false;
                 for (Graph g : smallest) {
-                    ChromaticNumber.Result r = ChromaticNumber.compute(ChromaticNumber.Type.EXACT, g, false, false);
+                    ChromaticNumber.Result r = ChromaticNumber.computeExact(g, false);
                     exact = Math.max(r.getExact() + g.getMeta().getLevel() + (smallest.size() == 1 ? 1 : 0), exact);//TODO !!!! is this correct?
                     //TODO fixed bug in exact (forgot to reset graph) is +1 actually correct...
                     // graph09.txt and block3_2018_graph20.txt would be wrong otherwise.... IDK
@@ -110,10 +112,51 @@ public class GraphCleaner {
                         smallest.size()
                 );
 
-                return new ChromaticNumber.Result(graph, exact, exact, exact, true);
+                return new Result(exact, exact, exact);
+                //return new ChromaticNumber.Result(graph, exact, exact, exact, true);
 
             }
         }
+
+        //--- Planar Graphs
+        if(false){
+            // http://www.cs.yale.edu/homes/spielman/561/2009/lect25-09.pdf -> Corollary 25.2.4.
+            time = System.currentTimeMillis();
+            if (graph.getNodes().size() >= 3) {
+                //  fully-triangulated planar graph
+                if (graph.getEdges().size() == 3 * graph.getNodes().size() - 6) {
+                    TestApp.debug("Cleaning (%dms) >> Graph is fully-triangulated planar graph. %n",
+                            System.currentTimeMillis() - time);
+                    return new Result(-1, 4, -1);
+                } else if ((graph.getEdges().size() <= ((3 * graph.getNodes().size()) - 6)) && GraphStructures.isPlanar(graph)) {
+                    TestApp.debug("Cleaning (%dms) >> Graph might be planar. %n",
+                            System.currentTimeMillis() - time);
+                    //return new Result(-1, 4, -1);
+                }
+            }
+        }
+
+
+
+        //TODO REMOVE
+        // Theory: A graph's chromatic number is max(degree) iff
+        //  (1) all nodes have the same degree
+        //  (2) max(degree) > 2
+        //  Well graph block3_2018_graph07 breaks it
+        /*{
+            int minDegree = Integer.MAX_VALUE;
+            int maxDegree = Integer.MIN_VALUE;
+            for(Map<Integer, Node.Edge> edges : graph.getEdges().values()) {
+                minDegree = Math.min(minDegree, edges.size());
+                maxDegree = Math.max(maxDegree, edges.size());
+                if(minDegree != maxDegree) break;
+            }
+            if(minDegree > 2 && minDegree == maxDegree) {
+                    TestApp.debug("Cleaning (0) >> !!!!! Graph has minDegree = maxDegree (EXPERIMENTAL!!!!!!) %n");
+                    return new Result(maxDegree + 1, maxDegree + 1, maxDegree + 1);
+            }
+        }*/
+        //TODO REMOVE END
 
         //removing unconnected cliques
         if(false){
@@ -156,7 +199,7 @@ public class GraphCleaner {
         }
 
 
-        return new ChromaticNumber.Result(null, -1, -1, -1, false);
+        return new Result(-1, -1, -1);
     }
 
 
@@ -274,5 +317,42 @@ public class GraphCleaner {
 
     }
 
+    public static class Result {
+
+        private int exact = -1;
+        private int lower = -1;
+        private int upper = -1;
+
+        public Result(int lower, int upper, int exact) {
+            this.lower = lower;
+            this.upper = upper;
+            this.exact = exact;
+        }
+
+        public int getExact() {
+            return exact;
+        }
+
+        public int getLower() {
+            return lower;
+        }
+
+        public int getUpper() {
+            return upper;
+        }
+
+        public boolean hasLower() {
+            return lower != -1;
+        }
+
+        public boolean hasUpper() {
+            return upper != -1;
+        }
+
+        public boolean hasExact() {
+            return exact != -1;
+        }
+
+    }
 
 }

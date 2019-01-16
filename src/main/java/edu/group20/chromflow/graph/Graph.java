@@ -333,6 +333,32 @@ public class Graph implements Cloneable {
 
         return adjacentMatrix;
     }
+    public double[][] toLaplacianMatrix(){
+
+        double[][] laplacianMatrix = new double[nodes.size()][nodes.size()];
+
+        Map<Integer, Integer> mapping = new HashMap<>();
+        int index = 0;
+        for(Node n : nodes.values()) {
+            mapping.put(n.getId(), index);
+            index++;
+        }
+
+        nodes.forEach((from_id, n) -> {
+            final int mapFromId = mapping.get(from_id);
+
+            getEdges(n.getId()).forEach((to_id, e) -> {
+                final int mapToId = mapping.get(to_id);
+                laplacianMatrix[mapFromId][mapToId] = -1;
+                laplacianMatrix[mapToId][mapFromId] = -1;
+            });
+
+            laplacianMatrix[mapFromId][mapFromId] = edges.get(from_id).size();
+
+        });
+
+        return laplacianMatrix;
+    }
 
 
     public static class Meta {

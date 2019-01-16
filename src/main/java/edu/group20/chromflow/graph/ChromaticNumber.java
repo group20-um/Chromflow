@@ -1,6 +1,5 @@
 package edu.group20.chromflow.graph;
 
-import Jama.Matrix;
 import edu.group20.chromflow.GephiConverter;
 import edu.group20.chromflow.GraphCleaner;
 import edu.group20.chromflow.TestApp;
@@ -47,31 +46,38 @@ public class ChromaticNumber {
      * @param graph The graph we want to perform the computations on.
      * @param consumer The consumers gets called when a result is ready.
      */
-    public static void computeAsync(Type type, Graph graph, Consumer<Result> consumer) {
+    /*public static void computeAsync(Type type, Graph graph, Consumer<Result> consumer) {
         CompletableFuture.supplyAsync(() -> compute(type, graph, false, true), schedule).thenAccept(consumer);
-    }
+    }*/
 
     /**
      * Computes the requested data.
-     * @param type The type of information that gets requested.
      * @param graph The graph we want to perform the computations on.
-     * @param runTimeBound Terminates the algorithm after a time limit.
      * @return Never null, always a result.
      */
-    public static Result compute(Type type, Graph graph, boolean runTimeBound, boolean clean) {
+    public static Result computeExact(Graph graph, boolean clean) {
         graph.reset();
-        final Result cleanResult = clean ? GraphCleaner.clean(graph) : new Result(null, -1, -1, -1, false);
+        final GraphCleaner.Result cleanResult = clean ? GraphCleaner.clean(graph) : new GraphCleaner.Result(-1, -1, -1);
         GephiConverter.generateGephiFile(graph);
-
-        switch (type) {
-
-            case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
-            case UPPER: return runTimeBound ? limitedTimeUpper(graph) : new Result(null,-1, -1, upperBound(graph, UpperBoundMode.DEGREE_DESC), true);
-            case EXACT: return runTimeBound ? limitedTimeExactTest(graph, cleanResult) : exactTest(graph, cleanResult, false);
-
-        }
-        throw new IllegalStateException();
+        return exactTest(graph, cleanResult, false);
     }
+
+    /**
+     * public static Result compute(Type type, Graph graph, boolean runTimeBound, boolean clean) {
+     *         graph.reset();
+     *         final Result cleanResult = clean ? GraphCleaner.clean(graph) : new Result(null, -1, -1, -1, false);
+     *         GephiConverter.generateGephiFile(graph);
+     *
+     *         switch (type) {
+     *
+     *             case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
+     *             case UPPER: return runTimeBound ? limitedTimeUpper(graph) : new Result(null,-1, -1, upperBound(graph, UpperBoundMode.DEGREE_DESC), true);
+     *             case EXACT: return runTimeBound ? limitedTimeExactTest(graph, cleanResult) : exactTest(graph, cleanResult, false);
+     *
+     *         }
+     *         throw new IllegalStateException();
+     *     }
+     */
 
     //---
 
@@ -81,7 +87,7 @@ public class ChromaticNumber {
      * @param graph The graph to run the computation on.
      * @return Never null, the result.
      */
-    private static Result limitedTimeExactTest(Graph graph, Result cleanResult) {
+    private static Result limitedTimeExactTest(Graph graph, GraphCleaner.Result cleanResult) {
         return timeBoundMethodExecution(new MethodRunnable() {
             @Override
             public void run() {
@@ -147,54 +153,53 @@ public class ChromaticNumber {
 
 
     // --- EXACT_EXPERIMENTAL SECTION ---
-    private static Result exactTest(Graph graph, Result cleanResult, boolean runTimeBound) {
+    private static Result exactTest(Graph graph, GraphCleaner.Result cleanResult, boolean runTimeBound) {
 
-        if(cleanResult.isReady()) {
-            TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", cleanResult.getUpper());
-            TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", cleanResult.getLower());
+        if(cleanResult.hasExact()) {
+            TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", cleanResult.getExact());
+            TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", cleanResult.getExact());
             TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", cleanResult.getExact());
-            return cleanResult;
+            return new Result(graph, cleanResult.getExact(), cleanResult.getExact(), cleanResult.getExact(), true);
 
         }
 
         //---
         long time = System.currentTimeMillis();
-        final int upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC);
-        TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
+        int upper = cleanResult.getUpper();
+        if (!cleanResult.hasUpper()) {
+            upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC);
+            TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
+        } else {
+            TestApp.debug("Upper bound (0ms) >> %d, calculated by clean()%n", upper);
+        }
         TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", upper);
 
-        int lower = graph.getEdges().isEmpty() ? 1 : 2;
+        int lower = cleanResult.getLower();
+        if(!(cleanResult.hasLower())) {
+            lower = graph.getEdges().isEmpty() ? 1 : 2;
+            TestApp.debug("Lower bound (0ms) >> %d%n", lower);
+        } else {
+            TestApp.debug("Lower bound (0ms) >> %d%n, calculated by clean()", lower);
+        }
         TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
-        if(upper > 4) {
+        if(upper > 4 && !cleanResult.hasLower()) {
             graph.reset();
             time = System.currentTimeMillis();
-            //lower = testLowerBound(graph);
             lower = lowerBound(graph);
             TestApp.debug("Lower bound (%dms) >> %d%n", (System.currentTimeMillis() - time), lower);
             TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
+            // TODO that should never happen, so why is this here?
             if (lower > upper) {
-                lower = 1;
+                lower = graph.getEdges().isEmpty() ? 1 : 2;
             }
 
             if (upper == lower) {
                 TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
                 TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
                 return new Result(graph, upper, upper, upper, true);
-            }/* else if(lower * 2 < upper) {
-                graph.reset();
-                lower = Math.max(lower, runTimeBound ? limitedTimeLowerBound(graph).getLower() : lowerBound(graph));
-
-                TestApp.debug("<Exact Test> Improved Range: [%d..%d]%n", lower, upper);
-                TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
-
-                if(upper == lower) {
-                    TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
-                    TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
-                    return new Result(graph, upper, upper, upper, true);
-                }
-            }*/
+            }
         }
 
         graph.reset();
@@ -249,22 +254,6 @@ public class ChromaticNumber {
         TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", exact);
 
         return new Result(result, exact, lower, upper, true);
-    }
-
-    public static Result lowerBoundEigenvalues(Graph graph) {
-        Matrix matrix = new Matrix(graph.toAdjacentMatrix());
-
-        double min = Double.MAX_VALUE;
-        double max = Double.MIN_VALUE;
-
-        double[] eigs = matrix.eig().getRealEigenvalues();
-
-        for(int i = 0; i < eigs.length; i++) {
-            min = Math.min(eigs[i], min);
-            max = Math.max(eigs[i], max);
-        }
-
-        return new Result(null, 0, (int) Math.ceil(1 - max / min), 0, false);
     }
 
     private static boolean exact(Graph graph, List<Node> nodes, int colours) {
