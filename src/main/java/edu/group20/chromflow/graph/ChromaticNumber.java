@@ -6,11 +6,9 @@ import edu.group20.chromflow.TestApp;
 import edu.group20.chromflow.util.Mergesort;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class ChromaticNumber {

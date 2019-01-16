@@ -18,8 +18,8 @@ public class GraphCleaner {
             TestApp.debug("Cleaning (0ms) >> Detected complete graph.%n");
             return new Result(graph.getNodes().size(), graph.getNodes().size(), graph.getNodes().size());
         }
-        long time = System.currentTimeMillis();
 
+        long time = System.currentTimeMillis();
         //removing single nodes
         {
             time = System.currentTimeMillis();
@@ -75,8 +75,6 @@ public class GraphCleaner {
                 //Smallest actually contains leaves
                 List<Graph> smallest = new LinkedList<>();
 
-                //boolean isFirst = true;
-
                 while (!subgraphs.isEmpty()) {
                     Graph g = subgraphs.pop();
 
@@ -84,12 +82,9 @@ public class GraphCleaner {
                     divider(_S, g);
 
                     //size == -1 -> we found the smallest subgraph (leave)
-                    if (_S.size() == 1) {
-                        smallest.addAll(_S);
-                    }
-                    //size > 1 -> we have found additional subgraphs which may or may not contain more subgraphs
-                    else {
-                        //isFirst = false;
+                    if (_S.isEmpty()) {
+                        smallest.add(g);
+                    } else {
                         _S.forEach(e -> e.getMeta().setLevel(g.getMeta().getLevel() + 1)); // increase the levels of the next level of subgraphs
                         subgraphs.addAll(_S); // add to look at them
                     }
@@ -99,11 +94,7 @@ public class GraphCleaner {
                 TestApp.OUTPUT_ENABLED = false;
                 for (Graph g : smallest) {
                     ChromaticNumber.Result r = ChromaticNumber.computeExact(g, false);
-                    exact = Math.max(r.getExact() + g.getMeta().getLevel() + (smallest.size() == 1 ? 1 : 0), exact);//TODO !!!! is this correct?
-                    //TODO fixed bug in exact (forgot to reset graph) is +1 actually correct...
-                    // graph09.txt and block3_2018_graph20.txt would be wrong otherwise.... IDK
-                    // graph09.txt is 16 according to Steven
-                    // block3_2018_graph20.txt -> is [8..9] before cleaning so it cannot be 10...
+                    exact = Math.max(r.getExact() + g.getMeta().getLevel(), exact);
                 }
                 TestApp.OUTPUT_ENABLED = true;
 
@@ -119,7 +110,7 @@ public class GraphCleaner {
         }
 
         //--- Planar Graphs
-        if(false){
+        if(true){
             // http://www.cs.yale.edu/homes/spielman/561/2009/lect25-09.pdf -> Corollary 25.2.4.
             time = System.currentTimeMillis();
             if (graph.getNodes().size() >= 3) {
@@ -137,26 +128,6 @@ public class GraphCleaner {
         }
 
 
-
-        //TODO REMOVE
-        // Theory: A graph's chromatic number is max(degree) iff
-        //  (1) all nodes have the same degree
-        //  (2) max(degree) > 2
-        //  Well graph block3_2018_graph07 breaks it
-        /*{
-            int minDegree = Integer.MAX_VALUE;
-            int maxDegree = Integer.MIN_VALUE;
-            for(Map<Integer, Node.Edge> edges : graph.getEdges().values()) {
-                minDegree = Math.min(minDegree, edges.size());
-                maxDegree = Math.max(maxDegree, edges.size());
-                if(minDegree != maxDegree) break;
-            }
-            if(minDegree > 2 && minDegree == maxDegree) {
-                    TestApp.debug("Cleaning (0) >> !!!!! Graph has minDegree = maxDegree (EXPERIMENTAL!!!!!!) %n");
-                    return new Result(maxDegree + 1, maxDegree + 1, maxDegree + 1);
-            }
-        }*/
-        //TODO REMOVE END
 
         //removing unconnected cliques
         if(false){
@@ -203,53 +174,35 @@ public class GraphCleaner {
     }
 
 
-    private static void divider(LinkedList<Graph> subgraphs, Graph graph) {
+    private static boolean divider(LinkedList<Graph> subgraphs, Graph graph) {
 
-        /*
-        // TODO Assuming that :MightFixCliques actually fixes the bug that we had than we no longer require this check
-        if(graph.getNodes().size() == 2 && graph.getEdges().size() == 2) {
-            subgraphs.add(graph.clone());
-            graph.getNodes().clear();
-            graph.getEdges().clear();
-            return;
-        }*/
-
-        /*Stack<Node> hashSet = graph.getNodes().values().stream()
-                .filter(e -> graph.getDegree(e.getId()) == graph.getNodes().size() - 1)
-                .collect(Collectors.toCollection(Stack::new));*/
-
-        // :MightFixCliques TODO Validate, the idea is that instead of just removing all the nodes, we keep walking down the tree
-        // so we get the correct levels, otherwise we might just get rid of an entire clique by accident
-        Stack<Node> hashSet = new Stack<>();
-        graph.getNodes().values().stream()
-                .filter(e -> graph.getDegree(e.getId()) == graph.getNodes().size() - 1).findAny().ifPresent(hashSet::add);
-
-        // TODO Just an idea, what exactly happens if we have more than split point at once in a graph, this is causing the issues
-        // with graph block3_2018_08. In theory, we would expect to split into to but we just return this one, so we get an erroneous +1
-        /*if(hashSet.size() > 1) {
-            subgraphs.add(graph.clone());
-            graph.getNodes().clear();
-            graph.getEdges().clear();
-            return;
-        }*/
-
-        while (!hashSet.isEmpty()) {
-            Node n = hashSet.pop();
-            graph.getNodes().remove(n.getId()); //remove the fully-connected node
-
-            List<Node> neighbours = graph.getNeighbours(n);
-            graph.getEdges().remove(n.getId()); //remove all the edges from fully-connected node -> B
-
-            // remove all the edges from B -> fully-connected node
-            neighbours.forEach(neighbour -> graph.getEdges(neighbour.getId()).remove(n.getId()));
+        if(graph.getNodes().size() == 1) {
+            return false;
         }
 
+        Optional<Node> nodeOptional = graph.getNodes().values().stream()
+                .filter(e -> graph.getDegree(e.getId()) == graph.getNodes().size() - 1)
+                .findAny();
+
+        if(!nodeOptional.isPresent()) return false;
+
+        // remove fully-connected node
+        Node n = nodeOptional.get();
+        graph.getNodes().remove(n.getId()); //remove the fully-connected node
+        List<Node> neighbours = graph.getNeighbours(n);
+        graph.getEdges().remove(n.getId()); //remove all the edges from fully-connected node -> B
+        // remove all the edges from B -> fully-connected node
+        neighbours.forEach(neighbour -> graph.getEdges(neighbour.getId()).remove(n.getId()));
+
+        // find subgraphs
+        final int subSize = subgraphs.size();
         for (Node node : graph.getNodes().values()) {
             // n.v != -1 means that it already belongs to another subgraph so we can skip it
             if (node.getValue() != -1) continue;
             subgraphs.add(discoverGraph(graph, node));
         }
 
+        return (subgraphs.size() > subSize);
     }
 
     private static Graph discoverGraph(Graph og, Node origin) {

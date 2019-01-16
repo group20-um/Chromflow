@@ -6,8 +6,6 @@ import edu.group20.chromflow.TestApp;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.stream.DoubleStream;
-import java.util.stream.Stream;
 
 public class GraphStructures {
 
@@ -21,13 +19,18 @@ public class GraphStructures {
         // http://cs-www.cs.yale.edu/homes/spielman/TALKS/blyth1.pdf -> page 61
 
         double[] eig =  new Matrix(graph.toLaplacianMatrix()).eig().getRealEigenvalues();
+        if(eig.length < 3) return false;
         Arrays.sort(eig);
 
         double secondSmallest = eig[1];
         double thirdSmallest = eig[2];
 
+        // TODO Graph is not
+        if(secondSmallest <= 0) return false;
+
         final double maxDegree = graph.getEdges().values().stream().mapToInt(Map::size).max().getAsInt();
-        return (secondSmallest <= (8 *  maxDegree) / graph.getNodes().size() && thirdSmallest <= Math.ceil(maxDegree / graph.getNodes().size()));
+        return (secondSmallest <= (8 *  maxDegree) / graph.getNodes().size() &&
+                thirdSmallest <= Math.ceil(maxDegree / graph.getNodes().size()));
     }
 
     public static int lowerBoundEigenValue(Graph graph) {
