@@ -1,52 +1,13 @@
 package edu.group20.chromflow.graph;
 
-import edu.group20.chromflow.GephiConverter;
 import edu.group20.chromflow.GraphCleaner;
 import edu.group20.chromflow.TestApp;
 import edu.group20.chromflow.util.Mergesort;
 
 import java.util.*;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class ChromaticNumber {
-
-    // overview >>
-    // old & maybe complicated >> https://sci-hub.se/https://dl.acm.org/citation.cfm?id=321837
-    // simple overview >> https://www.ics.uci.edu/~eppstein/pubs/Epp-WADS-01-slides.pdf
-    // max independent sets >> https://www.cs.rit.edu/~ark/fall2016/654/team/11/report.pdf
-    // >> https://blogs.msdn.microsoft.com/ericlippert/tag/graph-colouring/
-    // Epstein overview >> https://www.ics.uci.edu/~eppstein/pubs/graph-color.html
-
-    private static ScheduledThreadPoolExecutor schedule = new ScheduledThreadPoolExecutor(4);
-
-    /**
-     * The time limits for the different modes.
-     */
-    public final static long TIME_LIMIT_EXACT = TimeUnit.SECONDS.toNanos(60);
-    public final static long TIME_LIMIT_LOWER = TimeUnit.SECONDS.toNanos(10);
-    public final static long TIME_LIMIT_UPPER = TimeUnit.SECONDS.toNanos(10);
-
-    /**
-     * The different types of information somebody can request from this class for any given graph.
-     */
-    public enum Type {
-        UPPER,
-        LOWER,
-        EXACT
-    }
-
-    /**
-     * Computes the requested data in a async-fashion, and supplies it back via a callback.
-     * @param type The type of information that gets requested.
-     * @param graph The graph we want to perform the computations on.
-     * @param consumer The consumers gets called when a result is ready.
-     */
-    /*public static void computeAsync(Type type, Graph graph, Consumer<Result> consumer) {
-        CompletableFuture.supplyAsync(() -> compute(type, graph, false, true), schedule).thenAccept(consumer);
-    }*/
 
     /**
      * Computes the requested data.
@@ -56,85 +17,7 @@ public class ChromaticNumber {
     public static Result computeExact(Graph graph, boolean clean) {
         graph.reset();
         final GraphCleaner.Result cleanResult = clean ? GraphCleaner.clean(graph) : new GraphCleaner.Result(-1, -1, -1);
-        GephiConverter.generateGephiFile(graph);
         return exactTest(graph, cleanResult, false);
-    }
-
-    /**
-     * public static Result compute(Type type, Graph graph, boolean runTimeBound, boolean clean) {
-     *         graph.reset();
-     *         final Result cleanResult = clean ? GraphCleaner.clean(graph) : new Result(null, -1, -1, -1, false);
-     *         GephiConverter.generateGephiFile(graph);
-     *
-     *         switch (type) {
-     *
-     *             case LOWER: return runTimeBound ? limitedTimeLowerBound(graph) : new Result(null,-1, lowerBound(graph), -1, true);
-     *             case UPPER: return runTimeBound ? limitedTimeUpper(graph) : new Result(null,-1, -1, upperBound(graph, UpperBoundMode.DEGREE_DESC), true);
-     *             case EXACT: return runTimeBound ? limitedTimeExactTest(graph, cleanResult) : exactTest(graph, cleanResult, false);
-     *
-     *         }
-     *         throw new IllegalStateException();
-     *     }
-     */
-
-    //---
-
-    /**
-     * Runs the exact tests in a time-limited fashion, this means that the method is guaranteed to finish after {@link ChromaticNumber#TIME_LIMIT_EXACT}.
-     * It does not always yield a finished computation, if it finishes earlier then it will return earlier.
-     * @param graph The graph to run the computation on.
-     * @return Never null, the result.
-     */
-    private static Result limitedTimeExactTest(Graph graph, GraphCleaner.Result cleanResult) {
-        return timeBoundMethodExecution(new MethodRunnable() {
-            @Override
-            public void run() {
-                this.setResult(exactTest(graph, cleanResult,true));
-            }
-        }, TIME_LIMIT_EXACT);
-    }
-
-    /**
-     * Runs the lower-bound tests in a time-limited fashion, this means that the method is guaranteed to finish after {@link ChromaticNumber#TIME_LIMIT_LOWER}.
-     * It does not always yield a finished computation, if it finishes earlier then it will return earlier.
-     * @param graph The graph to run the computation on.
-     * @return Never null, the result.
-     */
-    private static Result limitedTimeLowerBound(Graph graph) {
-        Result result = timeBoundMethodExecution(new MethodRunnable() {
-            @Override
-            public void run() {
-                Result r = new Result(null,-1, lowerBound(graph), -1, true);
-                this.setResult(r);
-            }
-        }, TIME_LIMIT_LOWER);
-
-        if(result.getLower() == -1) {
-            result = new Result(null,-1, basicLowerBound(graph), -1, true);
-        }
-
-        return result;
-    }
-
-    /**
-     * Runs the upper-bound tests in a time-limited fashion, this means that the method is guaranteed to finish after {@link ChromaticNumber#TIME_LIMIT_UPPER}.
-     * It does not always yield a finished computation, if it finishes earlier then it will return earlier.
-     * @param graph The graph to run the computation on.
-     * @return Never null, the result.
-     */
-    private static Result limitedTimeUpper(Graph graph) {
-        Result result = timeBoundMethodExecution(new MethodRunnable() {
-            @Override
-            public void run() {
-                Result r = new Result(null,-1, -1, upperBound(graph, UpperBoundMode.DEGREE_DESC), true);
-                this.setResult(r);
-            }
-        }, TIME_LIMIT_UPPER);
-
-        if(result.getUpper() == -1) {
-            result = new Result(null,0, 0, simpleUpperBound(graph), true);
-        }
-        return result;
     }
 
     /**
@@ -153,19 +36,32 @@ public class ChromaticNumber {
     // --- EXACT_EXPERIMENTAL SECTION ---
     private static Result exactTest(Graph graph, GraphCleaner.Result cleanResult, boolean runTimeBound) {
 
+        // This can happen when GraphCleaner breaks down a fully-connected graph
+        if(graph.getNodes().size() == 1) {
+            cleanResult = new GraphCleaner.Result(1, 1, 1);
+        }
+
         if(cleanResult.hasExact()) {
             TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", cleanResult.getExact());
             TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", cleanResult.getExact());
             TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", cleanResult.getExact());
             return new Result(graph, cleanResult.getExact(), cleanResult.getExact(), cleanResult.getExact(), true);
-
         }
 
         //---
         long time = System.currentTimeMillis();
         int upper = cleanResult.getUpper();
         if (!cleanResult.hasUpper()) {
-            upper = runTimeBound ? limitedTimeUpper(graph).getUpper() : upperBound(graph, UpperBoundMode.DEGREE_DESC);
+            upper = upperBound(graph, UpperBoundMode.SUPERMAN);
+            /* TODO research speed and benefits
+            if(graph.getNodes().size() > 1000) {
+                upper = upperBound(graph, UpperBoundMode.DEGREE_DESC);
+            } else {
+                upper = Integer.MAX_VALUE;
+                for(int i = 0; i < graph.getNodes().size(); i++) {
+                    upper = upperBound(graph, UpperBoundMode.SHUFFLE);
+                }
+            }*/
             TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
         } else {
             TestApp.debug("Upper bound (0ms) >> %d, calculated by clean()%n", upper);
@@ -181,10 +77,14 @@ public class ChromaticNumber {
         }
         TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
-        if(upper > 4 && !cleanResult.hasLower()) {
+        if (upper == lower) {
+            TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
+            TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
+            return new Result(graph, upper, upper, upper, true);
+        } else if((upper > 4 || graph.getNodes().size() < 1000) && !cleanResult.hasLower()) {
             graph.reset();
             time = System.currentTimeMillis();
-            lower = lowerBound(graph);
+            lower = lowerBound(graph, upper);
             TestApp.debug("Lower bound (%dms) >> %d%n", (System.currentTimeMillis() - time), lower);
             TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
@@ -205,6 +105,7 @@ public class ChromaticNumber {
         //---
         final boolean SORT_BY_DEGREE_DESC = true;
         final boolean SORT_BY_NEIGHBOURS = false;
+        final boolean SORT_BY_K_SHORTEST_PATH = false;
 
         LinkedList<Node> nodes = new LinkedList<>(graph.getNodes().values());
 
@@ -225,6 +126,41 @@ public class ChromaticNumber {
                 }
             });
             TestApp.debug("Sort nodes by relation (%dms) >> Done%n", (System.currentTimeMillis() - time));
+        }
+        if(SORT_BY_K_SHORTEST_PATH) {
+            time = System.currentTimeMillis();
+            graph.reset();
+            Map<Integer, Integer> score = new HashMap<>();
+            for(Node n : graph.getNodes().values()) {
+                graph.reset();
+                Dijkstra.buildPaths(graph, n.getId()).values().forEach(i -> {
+                    score.put(i, score.getOrDefault(i, 0) + 1);
+                });
+            }
+            nodes = Mergesort.sort(nodes, new Comparator<Node>() {
+                @Override
+                public int compare(Node o1, Node o2) {
+                    return -Integer.compare(score.get(o1.getId()), score.get(o2.getId()));
+                }
+            });
+
+            graph.reset();
+            int value = Integer.MAX_VALUE;
+            for(Node n : nodes) {
+                if(n.getValue() == -1) {
+                    n.setValue(value);
+                    int finalValue = value;
+                    graph.getEdges(n.getId()).values().forEach(e -> e.getTo().setValue(finalValue));
+                    value--;
+                }
+            }
+            nodes = Mergesort.sort(nodes, new Comparator<Node>() {
+                @Override
+                public int compare(Node o1, Node o2) {
+                    return -Integer.compare(o1.getValue(), o2.getValue());
+                }
+            });
+            TestApp.debug("Sort nodes by k-shortest-path (%dms) >> Done%n", (System.currentTimeMillis() - time));
         }
         //---
 
@@ -269,7 +205,7 @@ public class ChromaticNumber {
 
         //--- 2 isBipartie
         if(colours == 2) {
-            if(nodes.size() % 2 == 0 && GraphStructures.isBipartiteEigenValue(graph) /*&&graph.hasOnlyEvenCycles() */) { // TODO get Graph#hasOnlyEvenCycles
+            if(nodes.size() % 2 == 0 && GraphStructures.EVBAsed.isBipartiteEigenValue(graph) /*&&graph.hasOnlyEvenCycles() */) { // TODO get Graph#hasOnlyEvenCycles
                 return true;
             } else {
                 graph.reset();
@@ -398,6 +334,33 @@ public class ChromaticNumber {
                 //--- map with order from graph
                 unvisited = graph.getNodes().values().stream().collect(Collectors.toCollection(Stack::new));
                 break;
+
+            //TODO verify correctness of code (passes all unit tests but you never know ¯\_(ツ)_/¯
+            case SUPERMAN:
+                Map<Integer, Integer> degrees = new HashMap<>();
+                HashSet<Integer> removed = new HashSet<>();
+                graph.getEdges().forEach((fromId, edges) -> degrees.put(fromId, edges.size()));
+                unvisited = new Stack<>();
+                while (removed.size() < /*!=*/ graph.getNodes().size()) {
+                    int node = Integer.MAX_VALUE;
+                    for(int id : graph.getNodes().keySet()) {
+                        if(!(removed.contains(id))) {
+                            if(degrees.getOrDefault(node, Integer.MAX_VALUE) > degrees.get(id)) {
+                                node = id;
+                            }
+                        }
+                    }
+
+                    for(int neighbour : graph.getEdges(node).keySet()) {
+                        if(!(removed.contains(neighbour))) {
+                            degrees.compute(neighbour, (key, oldValue) -> oldValue -1);
+                        }
+                    }
+                    unvisited.add(graph.getNode(node));
+                    removed.add(node);
+                }
+                break;
+
         }
 
         int max = 0;
@@ -443,52 +406,11 @@ public class ChromaticNumber {
     }
 
     //--- LOWER BOUND --
-    private static int lowerBound(Graph graph) {
-        return bronKerboschWithPivot(graph, new HashSet<>(), new HashSet<>(graph.getNodes().values()), new HashSet<>());
+    private static int lowerBound(Graph graph, int upperBound) {
+        return bronKerboschWithPivot(graph, new HashSet<>(), new HashSet<>(graph.getNodes().values()), new HashSet<>(), upperBound);
     }
 
-    /**
-     * The method runs through the graph and gives back a list with all the cliques
-     * within the graph
-     * @param graph the considered graph
-     * @param _R set of current Nodes in the clique
-     * @param _P set of candidate Nodes
-     * @param _X set of excluded Nodes
-     * @return The size of the biggest clique in the given graph.
-     **/
-    private static int bronKerbosch(Graph graph, HashSet<Node> _R, HashSet<Node> _P, HashSet<Node> _X) {
-        int max = Integer.MIN_VALUE;
-        if(_P.isEmpty() && _X.isEmpty()) {
-            max = Math.max(max, _R.size());
-            return max;
-        }
-
-        Iterator<Node> nodeIterator = _P.iterator();
-        while (nodeIterator.hasNext()) {
-
-            //---
-            Node node = nodeIterator.next();
-            //List<Node> neighbours = graph.getEdges(node.getId()).values().stream().map(Node.Edge::getTo).collect(Collectors.toList());
-            List<Node> neighbours = graph.getNeighbours(node);
-
-            //---
-            HashSet<Node> dR = _R; //List<Node> dR = new ArrayList<>(_R);
-            dR.add(node);
-
-            HashSet<Node> dP = _P.stream().filter(neighbours::contains).collect(Collectors.toCollection(HashSet::new));
-            HashSet<Node> dX = _X.stream().filter(neighbours::contains).collect(Collectors.toCollection(HashSet::new));
-
-            max = Math.max(bronKerbosch(graph, dR, dP, dX), max);
-
-            //---
-            nodeIterator.remove();
-            _X.add(node);
-        }
-
-        return max;
-    }
-
-    public static int bronKerboschWithPivot(Graph graph, HashSet<Node> _R, HashSet<Node> _P, HashSet<Node> _X) {
+    public static int bronKerboschWithPivot(Graph graph, HashSet<Node> _R, HashSet<Node> _P, HashSet<Node> _X, final int upperBound) {
         int max = Integer.MIN_VALUE;
         if(_P.isEmpty() && _X.isEmpty()) {
             max = Math.max(max, _R.size());
@@ -524,8 +446,15 @@ public class ChromaticNumber {
                         graph,
                         _R,
                         P1.stream().filter(e -> graph.hasEdge(e.getId(), v.getId())).collect(Collectors.toCollection(HashSet::new)),
-                        _X.stream().filter(e -> graph.hasEdge(e.getId(), v.getId())).collect(Collectors.toCollection(HashSet::new))
+                        _X.stream().filter(e -> graph.hasEdge(e.getId(), v.getId())).collect(Collectors.toCollection(HashSet::new)),
+                        upperBound
                 ));
+
+                // TODO Verify, if the max clique is equal to our upperBound then we are done right? Greatly reduces
+                //  time to compute lowerBound for benchmark/miles1500.col
+                if(max == upperBound) {
+                    return max;
+                }
 
                 _R.remove(v);
                 P1.remove(v);
@@ -539,85 +468,6 @@ public class ChromaticNumber {
         }
 
         return max;
-    }
-
-    private static int testLowerBound(Graph g){
-        AtomicInteger maxSize = new AtomicInteger(Integer.MIN_VALUE);
-        testLowerBoundExpand(g, new HashSet<>(), new HashSet<>(g.getNodes().values()), maxSize);
-        return maxSize.get();
-
-    }
-
-    private static void testLowerBoundExpand(Graph graph, HashSet<Node> C, HashSet<Node> set, AtomicInteger maxSize){
-        Iterator<Node> iterator = set.iterator();
-        while (iterator.hasNext()){
-            if (C.size() + set.size() <= maxSize.get()) {
-                break;
-            }
-
-            Node node = iterator.next();
-            C.add(node);
-            HashSet<Node> newList = set.stream()
-                    .filter(w -> graph.hasEdge(node.getId(), w.getId()))
-                    .collect(Collectors.toCollection(HashSet::new));
-
-            if (newList.isEmpty()) {
-                maxSize.set(Math.max(maxSize.get(), C.size()));
-            } else {
-                testLowerBoundExpand(graph, C, newList, maxSize);
-            }
-
-            C.remove(node);
-            iterator.remove();
-
-        }
-    }
-
-
-    //--- Utility
-
-    /**
-     * Runs a method in a time-bound fashion. - If the method finishes be fore being done then it just returns normally,
-     * otherwise if it runs beyond its target time it will get cancelled.
-     * @param runnable The method to run.
-     * @param timeInMilliseconds The max execution time.
-     * @return The result of running the method.
-     */
-    private static Result timeBoundMethodExecution(MethodRunnable runnable, final long timeInMilliseconds) {
-        Thread thread = new Thread(runnable);
-        thread.start();
-        long time = System.nanoTime();
-        long countdown = time + timeInMilliseconds;
-
-        // TODO replace busy waiting
-        while (!runnable.getResult().isReady() && time < countdown) {
-            TestApp.debug(""); //for some reason this code does not work without this. is there maybe some sort of byte-code optimisation going on removing this type of loop
-            time = System.nanoTime();
-        }
-        //thread.interrupt();
-
-        return runnable.getResult();
-
-    }
-
-    /**
-     * Used to run the methods in a time-bound fashion.
-     */
-    private static abstract class MethodRunnable implements Runnable {
-
-        private Result result = new Result(null, -1, -1, -1, false);
-
-        @Override
-        public abstract void run();
-
-        public void setResult(Result result) {
-            this.result = result;
-        }
-
-        public Result getResult() {
-            return this.result;
-        }
-
     }
 
     /**

@@ -1,9 +1,7 @@
 package edu.group20.chromflow;
 
-import edu.group20.chromflow.graph.ChromaticNumber;
-import edu.group20.chromflow.graph.Graph;
-import edu.group20.chromflow.graph.GraphStructures;
-import edu.group20.chromflow.graph.Node;
+import edu.group20.chromflow.graph.*;
+import edu.group20.chromflow.util.Mergesort;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -75,6 +73,7 @@ public class GraphCleaner {
                 //Smallest actually contains leaves
                 List<Graph> smallest = new LinkedList<>();
 
+                int i = 1;
                 while (!subgraphs.isEmpty()) {
                     Graph g = subgraphs.pop();
 
@@ -85,6 +84,7 @@ public class GraphCleaner {
                     if (_S.isEmpty()) {
                         smallest.add(g);
                     } else {
+                        i++;
                         _S.forEach(e -> e.getMeta().setLevel(g.getMeta().getLevel() + 1)); // increase the levels of the next level of subgraphs
                         subgraphs.addAll(_S); // add to look at them
                     }
@@ -119,7 +119,7 @@ public class GraphCleaner {
                     TestApp.debug("Cleaning (%dms) >> Graph is fully-triangulated planar graph. %n",
                             System.currentTimeMillis() - time);
                     return new Result(-1, 4, -1);
-                } else if ((graph.getEdges().size() <= ((3 * graph.getNodes().size()) - 6)) && GraphStructures.isPlanar(graph)) {
+                } else if ((graph.getEdges().size() <= ((3 * graph.getNodes().size()) - 6)) && GraphStructures.EVBAsed.isPlanar(graph)) {
                     TestApp.debug("Cleaning (%dms) >> Graph might be planar. %n",
                             System.currentTimeMillis() - time);
                     //return new Result(-1, 4, -1);
@@ -161,12 +161,36 @@ public class GraphCleaner {
                     }
 
                     TestApp.debugln("outside neighbours >> " + outsideNeighbours);
-                    TestApp.debugln("pivot >> " + ChromaticNumber.bronKerboschWithPivot(graph, new HashSet<>(), new HashSet<>(graph.getNodes().values()), new HashSet<>()));
+                    //TestApp.debugln("pivot >> " + ChromaticNumber.bronKerboschWithPivot(graph, new HashSet<>(), new HashSet<>(graph.getNodes().values()), new HashSet<>()));
                 } else {
                     TestApp.debugln("[1]");
                     break;
                 }
             }
+        }
+
+        // finding communities
+        if(false) {
+            time = System.currentTimeMillis();
+            graph.reset();
+            LinkedList<Node> nodes = new LinkedList<>(graph.getNodes().values());
+            Map<Integer, Double> score = new HashMap<>();
+            double maxScore = Double.MIN_VALUE;
+            for(Node n : graph.getNodes().values()) {
+                graph.reset();
+                Map<Integer, Integer> previous = Dijkstra.buildPaths(graph, n.getId());
+
+                for(int prev : previous.values()) {
+                    final double v = score.getOrDefault(prev, 0D) + 1;
+                    maxScore = Math.max(v, maxScore);
+                    score.put(prev, v);
+                }
+            }
+            for (Map.Entry<Integer, Double> entry : score.entrySet()) {
+                score.put(entry.getKey(), (entry.getValue() / maxScore));
+            }
+            nodes = Mergesort.sort(nodes, (o1, o2) -> -Double.compare(score.getOrDefault(o1.getId(), 0D), score.getOrDefault(o2.getId(), 0D)));
+            TestApp.debug("Sort nodes by k-shortest-path (%dms) >> Done%n", (System.currentTimeMillis() - time));
         }
 
 
@@ -223,7 +247,7 @@ public class GraphCleaner {
 
             List<Node> neighbours = og.getNeighbours(n); //get all neighbours from the original graph
             neighbours.forEach(neighbour -> {
-                if(!newGraph.hasNode(neighbour.getId())) { // new graph doesn't have neighbour yet so just add it to avoid errors
+                if (!newGraph.hasNode(neighbour.getId())) { // new graph doesn't have neighbour yet so just add it to avoid errors
                     newGraph.addNode(neighbour.getId(), -1);
                 }
 

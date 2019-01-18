@@ -1,6 +1,5 @@
 package edu.group20.chromflow.graph;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,11 +13,6 @@ public class Graph implements Cloneable {
 
     private Map<Integer, Node> nodes = new HashMap<>();
     private Map<Integer, Map<Integer, Edge>> edges = new HashMap<>();
-
-    //
-    private int sizeCircle=0;
-    private ArrayList<Integer> sizes=new ArrayList<>();
-
 
     public Graph() {}
 
@@ -137,86 +131,6 @@ public class Graph implements Cloneable {
         return nodes.values().stream().noneMatch(n -> n.getValue() == -1);
     }
 
-    public void setSizeCircle(int sizeCircle) {
-        this.sizeCircle = sizeCircle;
-    }
-
-    public boolean izCycle(Node source, Boolean visited[], Node parent ){
-
-
-        //if (source.getValue() != -1) return true;
-
-        visited[source.getId()-1]=true;
-
-        List<Node> neighbours=this.getNeighbours(source);
-
-        for(int i=0; i<neighbours.size(); i++ ){
-
-            if (!visited[neighbours.get(i).getId()-1]){
-
-                sizeCircle++;
-
-                return izCycle( neighbours.get(i) , visited, source);
-
-            }
-
-            else if( neighbours.get(i)!= parent ){
-
-                sizeCircle++;
-                int cnt = 0;
-                sizes.add(cnt, sizeCircle);
-                return true;
-            }
-
-            else{
-                sizeCircle--;
-            }
-
-        }
-
-        return false;
-
-    }
-
-    public int getSizeCircle() {
-        return sizeCircle;
-    }
-
-    public int cycleSize(Node source, int size) {
-
-        if (source.getValue() != -1) return size;
-        else if (this.getNextAvailableNode(source) == null) return 0;
-        else {
-            source.setValue(1);
-            size++;
-            return cycleSize(this.getNextAvailableNode(source), size);
-        }
-    }
-
-    public boolean isBipartite( List<Node> parent){
-
-        if(this.getNodes().size()<2){ //probably check somewhere else
-            return false;
-        }
-
-        if(this.isColored()){
-            return true;
-        }
-
-        colourNeighbours( parent);
-        List<Node> newParents=new ArrayList<>();
-        for(int i=0; i<parent.size();i++){
-
-            if(hasNeighbourSameColour( parent.get(i))){
-                return false;
-            }
-            newParents.addAll(this.getNeighbours(parent.get(i)));
-        }
-
-        return isBipartite( newParents);
-
-    }
-
     public void colourNeighbours( List<Node> nodes){
 
         for(int i=0; i<nodes.size();i++){
@@ -243,72 +157,8 @@ public class Graph implements Cloneable {
         return false;
     }
 
-    public boolean isPath () { //doesn't work perfectly, no need
-        int size = nodes.size();
-        for (int i = 1; i <= size; i ++){
-            if (this.getNeighbours(nodes.get(i)).size() > 2) return false;
-        }
-        return true;
-    }
-
     public boolean isComplete(){
         return nodes.keySet().stream().allMatch(id -> edges.get(id).size() == nodes.size() - 1);
-    }
-
-    public boolean hasCycle(){
-        this.isComplete();
-
-        Boolean[] visited=new Boolean[this.getNodes().size()];
-
-        for(int i=0; i<visited.length; i++){
-            visited[i]=false;
-        }
-
-        boolean cyclic=false;
-
-        for( int i=1; i<= this.getNodes().size(); i++){
-
-            if(!visited[i-1]){
-
-                if(this.izCycle(this.getNode(i), visited, new Node(-1, -1))){
-
-                    cyclic=true;
-
-                }
-            }
-
-        }
-
-        return cyclic;
-    }
-
-    public boolean hasOnlyEvenCycles(){
-
-        boolean even=true;
-
-        for(int i=0; i<sizes.size(); i++){
-
-            if(sizes.get(i)%2!=0){
-                even=false;
-            }
-        }
-
-        return even;
-    }
-
-    public int findBiggestCycle(){
-
-        int max=0;
-
-        for(int i=0; i<sizes.size(); i++){
-
-            if(sizes.get(i)>max){
-                max=sizes.get(i);
-            }
-        }
-
-        return max;
-
     }
 
     public double[][] toAdjacentMatrix(){

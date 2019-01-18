@@ -10,14 +10,14 @@ public class GraphCleanerTest {
     public void testFullyConnectedNodesRemover() {
 
         {
-            Graph g = GraphReader.parseGraph("src/main/java/data/block3_2018_graph08.txt");
+            Graph g = GraphReader.parseGraph("src/main/java/data/block3/block3_2018_graph08.txt");
             Assertions.assertNotNull(g);
             ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true);
             Assertions.assertEquals(98, r.getExact());
         }
 
         {
-            Graph g = GraphReader.parseGraph("src/main/java/data/block3_2018_graph20.txt");
+            Graph g = GraphReader.parseGraph("src/main/java/data/block3/block3_2018_graph20.txt");
             Assertions.assertNotNull(g);
             ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true);
             Assertions.assertEquals(9, r.getExact());

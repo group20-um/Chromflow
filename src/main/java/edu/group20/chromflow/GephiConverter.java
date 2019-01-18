@@ -11,7 +11,7 @@ import java.util.Map;
 public class GephiConverter {
 
 
-    public static void generateGephiFile(Graph graph) {
+    public static void generateGephiFile(Graph graph, String name) {
         //--- Gephi
         try {
 
@@ -36,7 +36,7 @@ public class GephiConverter {
             }
 
             builder.append("</edges></graph></gexf>");
-            File file = new File("src/main/java/data/gephi.gexf");
+            File file = new File(String.format("src/main/java/data/gephi/%s.gexf", name));
             if (!file.exists()) {
                 file.createNewFile();
             }

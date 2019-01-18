@@ -2,3 +2,4 @@
 .idea
 target
 .gexf
+src/main/java/data/gephi

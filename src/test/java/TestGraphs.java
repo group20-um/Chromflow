@@ -30,7 +30,7 @@ public class TestGraphs {
 
             if(ignore.contains(i))continue;
 
-            Graph g = GraphReader.parseGraph(String.format("src/main/java/data/graph%02d.txt", i));
+            Graph g = GraphReader.parseGraph(String.format("src/main/java/data/block1/graph%02d.txt", i));
             Assertions.assertNotNull(g);
 
             ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true);
@@ -77,7 +77,7 @@ public class TestGraphs {
 
             if(ignore.contains(i))continue;
 
-            Graph g = GraphReader.parseGraph(String.format("src/main/java/data/block3_2018_graph%02d.txt", i));
+            Graph g = GraphReader.parseGraph(String.format("src/main/java/data/block3/block3_2018_graph%02d.txt", i));
             Assertions.assertNotNull(g);
 
             ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true);
