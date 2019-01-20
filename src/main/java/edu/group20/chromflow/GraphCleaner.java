@@ -17,6 +17,11 @@ public class GraphCleaner {
             return new Result(graph.getNodes().size(), graph.getNodes().size(), graph.getNodes().size());
         }
 
+        // TODO :NothingOfConcern
+        int bestLower = Integer.MIN_VALUE;
+        int bestUpper = Integer.MAX_VALUE;
+        //---
+
         long time = System.currentTimeMillis();
         //removing single nodes
         {
@@ -91,9 +96,10 @@ public class GraphCleaner {
                 }
 
                 int exact = Integer.MIN_VALUE;
+                Mergesort.sort(smallest, (o1, o2) -> -Integer.compare(o1.getMeta().getLevel(), o2.getMeta().getLevel()));
                 TestApp.OUTPUT_ENABLED = false;
                 for (Graph g : smallest) {
-                    ChromaticNumber.Result r = ChromaticNumber.computeExact(g, false);
+                    ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true);
                     exact = Math.max(r.getExact() + g.getMeta().getLevel(), exact);
                 }
                 TestApp.OUTPUT_ENABLED = true;
@@ -109,8 +115,80 @@ public class GraphCleaner {
             }
         }
 
+
+        //is k-regular
+        {
+            LinkedList<Map<Integer, Node.Edge>> values = new LinkedList<>(graph.getEdges().values());
+            int kRegular = values.get(0).size();
+            for (int i = 1; i < values.size() && kRegular != -1; i++) {
+                if(values.get(i).size() != kRegular) {
+                    kRegular = -1;
+                }
+            }
+            TestApp.debug("Cleaning (%dms) >> k-regular, k: %s%n",
+                    (System.currentTimeMillis() - time),
+                    (kRegular == -1 ? "NA" : String.valueOf(kRegular))
+            );
+
+            if(kRegular != -1) {
+                switch (kRegular) {
+
+                    case 4: {
+                        // https://www.fmf.uni-lj.si/~klavzar/preprints/b-CubicFinal.pdf
+                        // 4-regular graphs can be coloured with an upper bound of 4 colours.
+                        // There are only 4 exceptions to this rule.
+                        //    - Petersen graph
+                        //    - K3,3 3 nodes & kRegular == 3, cannot happen
+                        if(
+                            !((graph.getNodes().size() == 10 && graph.getEdgeCount() == 30)  // Petersen Graph
+                            //|| (graph.getNodes().size() == 3 && kRegular == 3) K3,3
+                            //|| (graph.getNodes().size() == 5 %% kRegular == 5) K5,5
+                            || graph.getEdgeCount() == 20)
+                        )
+                        {
+                           bestUpper = Math.min(bestUpper, 4);
+                        }
+                    }
+
+                }
+            }
+        }
+
+        //Wheels
+        //TODO seems to be working, better qualifier required
+        if(graph.getNodes().size() < 1000) {
+            graph.reset();
+            int oddWheels = 0;
+            int evenWheels = 0;
+            boolean brokeEarly = false;
+            for(Node n : graph.getNodes().values()) {
+                final int x = GraphStructures.Test.isWheelCenter(graph, n);
+                if(x > 0) {
+                    if(x % 2 == 0) {
+                        evenWheels++;
+                    } else {
+                        oddWheels++;
+                    }
+                }
+
+                if(evenWheels > 0) {
+                    brokeEarly = true;
+                    break;
+                }
+            }
+            TestApp.debug("Cleaning (%dms) >> Wheels, even: %s, odd: %s, broke early: %s%n",
+                    (System.currentTimeMillis() - time),
+                    evenWheels > 0,
+                    oddWheels > 0,
+                    brokeEarly
+            );
+            if(oddWheels + evenWheels > 0) {
+                bestLower = Math.max(bestLower, evenWheels > 0 ? 4 : 3);
+            }
+        }
+
         //--- Planar Graphs
-        if(true){
+        if(false){
             // http://www.cs.yale.edu/homes/spielman/561/2009/lect25-09.pdf -> Corollary 25.2.4.
             time = System.currentTimeMillis();
             if (graph.getNodes().size() >= 3) {
@@ -126,8 +204,6 @@ public class GraphCleaner {
                 }
             }
         }
-
-
 
         //removing unconnected cliques
         if(false){
@@ -193,8 +269,20 @@ public class GraphCleaner {
             TestApp.debug("Sort nodes by k-shortest-path (%dms) >> Done%n", (System.currentTimeMillis() - time));
         }
 
-
-        return new Result(-1, -1, -1);
+        // TODO :NothingOfConcern
+        if(bestLower != Integer.MIN_VALUE && bestUpper != Integer.MAX_VALUE) {
+            if(bestLower == bestUpper) {
+                return new Result(bestLower, bestUpper, bestLower);
+            } else {
+                return new Result(bestLower, bestUpper, -1);
+            }
+        } else if(bestLower != Integer.MIN_VALUE) {
+            return new Result(bestLower, -1, -1);
+        } else if(bestUpper != Integer.MAX_VALUE) {
+            return new Result(-1, bestUpper, -1);
+        } else{
+            return new Result(-1, -1, -1);
+        }
     }
 
 
@@ -229,7 +317,7 @@ public class GraphCleaner {
         return (subgraphs.size() > subSize);
     }
 
-    private static Graph discoverGraph(Graph og, Node origin) {
+    public static Graph discoverGraph(Graph og, Node origin) {
 
         // create a new graph
         Graph newGraph = new Graph();

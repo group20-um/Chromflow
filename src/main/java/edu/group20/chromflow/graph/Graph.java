@@ -39,6 +39,7 @@ public class Graph implements Cloneable {
     public boolean addNode(int id, int value) {
         if(!(this.nodes.containsKey(id))) {
             this.nodes.put(id, new Node(id, value));
+            this.edges.put(id, new HashMap<>());
             return true;
         }
         return false;
@@ -47,10 +48,6 @@ public class Graph implements Cloneable {
     public void addEdge(int from, int to, boolean bidirectional) {
 
         if(bidirectional && hasEdge(from, to)) return;
-
-        if(!(this.edges.containsKey(from))) {
-            this.edges.put(from, new HashMap<>());
-        }
         this.edges.get(from).put(to, new Edge(this.getNode(from), this.getNode(to)));
 
         if(bidirectional) {
@@ -76,7 +73,7 @@ public class Graph implements Cloneable {
     }
 
     public Map<Integer, Edge> getEdges(int node) {
-        return this.edges.getOrDefault(node, new HashMap<>());
+        return this.edges.get(node);
     }
 
     public Map<Integer, Node> getNodes() {

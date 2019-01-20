@@ -4,6 +4,7 @@ import edu.group20.chromflow.graph.ChromaticNumber;
 import edu.group20.chromflow.graph.Graph;
 import edu.group20.chromflow.util.GraphReader;
 
+
 public class TestApp {
 
     public final static boolean GOD_KELK_MODE = false;
@@ -18,11 +19,10 @@ public class TestApp {
         // 15,
 
         //graph04.txt breaks isPlanar
-        args = new String[] {"src/main/java/data/block3/block3_2018_graph20.txt"};
+        args = new String[] {"src/main/java/data/block3/block3_2018_graph14.txt"};
         Graph graph = GraphReader.parseGraph(args[0]);
-
+        GephiConverter.generateGephiFile(graph, "___");
         debug("Result>> %s%n", ChromaticNumber.computeExact(graph, true));
-
     }
 
     public static void debug(String format, Object... vars) {

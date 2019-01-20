@@ -23,7 +23,7 @@ public class TestGraphs {
                 5, 10, 2, 11, 4, 54, 7, 2, 16, 5, 15, 5, 31, 4, 4, 7, 3, 8, 31, 4
         };
         HashSet<Integer> ignore = new HashSet<>(Arrays.asList(
-                1, 6, 7, 11, 12, 16, 18
+                1, 7, 11, 12, 16, 18
         ));
 
         for (int i = 1; i <= 20; i++) {
@@ -67,10 +67,10 @@ public class TestGraphs {
     @Test
     public void testGraphsFromBlock3() {
         int[] results = new int[] {
-            3, -1, -1, -1, 2, 3, -1, 98, -1, 3, 15, 2, -1, -1, -1, -1, 8, 10, 11, 9
+            3, -1, -1, -1, 2, 3, -1, 98, -1, 3, 15, 2, -1, 4, -1, -1, 8, 10, 11, 9
         };
         HashSet<Integer> ignore = new HashSet<>(Arrays.asList(
-                2,3,4,7,9,13,14,15,16
+                2,3,4,7,9,13,15,16
         ));
 
         for (int i = 1; i <= 20; i++) {

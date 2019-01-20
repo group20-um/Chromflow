@@ -153,12 +153,10 @@ public class GraphStructures {
         public static boolean isBipartite( Graph graph, List<Node> parent){
 
             if(graph.getNodes().size()<2){ //probably check somewhere else
-                System.out.println("Is NOT bipartite");
                 return false;
             }
 
             if(graph.isColored()){
-                System.out.println("Is bipartite");
                 return true;
             }
 
@@ -177,5 +175,55 @@ public class GraphStructures {
 
     }
 
+    public static class Test{
+
+        public static int isWheelCenter(Graph graph, Node node) {
+
+            if(node.getValue() == 0) {
+                return -1;
+            } else if(node.getValue() == 1) {
+                return graph.getEdges(node.getId()).size();
+            }
+
+            Map<Integer, Node.Edge> neighbours = graph.getEdges(node.getId());
+
+            int i = 0;
+            for(Node.Edge e : neighbours.values()) {
+                Node n = e.getTo();
+                if(n.getValue() != 1) {
+                    for (int a : graph.getEdges(n.getId()).keySet()) {
+                        if (n.getId() != a && neighbours.containsKey(a)) {
+                            i++;
+                        }
+                    }
+                }
+            }
+
+            if(i / 2 == neighbours.size()) {
+                neighbours.forEach((id, e) -> e.getTo().setValue(0));
+                node.setValue(1);
+                return neighbours.size();
+            }
+            return -1;
+        }
+
+        //https://link.springer.com/chapter/10.1007%2F978-3-642-60406-5_11
+        public static boolean isTwoPacking(Graph graph) {
+            if(graph.getEdgeCount() > 10000) {
+                return false;
+            }
+            for(Node n : graph.getNodes().values()) {
+                for(Node.Edge a : graph.getEdges(n.getId()).values()) {
+                    for(Node.Edge b : graph.getEdges(n.getId()).values()) {
+                        if(a != b && graph.hasEdge(a.getTo().getId(), b.getTo().getId())) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+    }
 
 }

@@ -49,45 +49,4 @@ public class GephiConverter {
     }
 
 
-    /*
-    public static void generateGephiFile(FloatMatrix edu.group20.chromflow.graph) {
-        //--- Gephi
-        try {
-
-
-            StringBuilder builder = new StringBuilder();
-            builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><gexf xmlns=\"http://www.gexf.net/1.2draft\" " +
-                    "xmlns:viz=\"http://www.gexf.net/1.1draft/viz\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " +
-                    "xsi:schemaLocation=\"http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd\" version=\"1.2\">" +
-                    "<edu.group20.chromflow.graph><nodes>");
-
-            for(int r = 0; r < edu.group20.chromflow.graph.getRows(); r++) {
-                builder.append(String.format("<node id=\"%d\" label=\"glossy\"></node>", r));
-            }
-
-            builder.append("</nodes><edges>");
-
-            int edgeId = 0;
-            for(int r = 0; r < edu.group20.chromflow.graph.getRows(); r++) {
-                for(int c = 0; c < edu.group20.chromflow.graph.getColumns(); c++) {
-                    if(edu.group20.chromflow.graph.get(r, c) > 0) {
-                        builder.append(String.format("<edge id=\"%d\" source=\"%d\" target=\"%d\" />", edgeId, r, c));
-                        edgeId++;
-                    }
-                }
-            }
-
-            builder.append("</edges></edu.group20.chromflow.graph></gexf>");
-            File file = new File("src/main/java/data/gephi.gexf");
-            if (!file.exists()) {
-                file.createNewFile();
-            }
-            FileOutputStream fileOutputStream = new FileOutputStream(file);
-            fileOutputStream.write(builder.toString().getBytes(Charset.forName("UTF-8")));
-            fileOutputStream.flush();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    }*/
-
 }

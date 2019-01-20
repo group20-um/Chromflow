@@ -9,11 +9,6 @@ import java.util.stream.Collectors;
 
 public class ChromaticNumber {
 
-    /**
-     * Computes the requested data.
-     * @param graph The graph we want to perform the computations on.
-     * @return Never null, always a result.
-     */
     public static Result computeExact(Graph graph, boolean clean) {
         graph.reset();
         final GraphCleaner.Result cleanResult = clean ? GraphCleaner.clean(graph) : new GraphCleaner.Result(-1, -1, -1);
@@ -50,48 +45,43 @@ public class ChromaticNumber {
 
         //---
         long time = System.currentTimeMillis();
-        int upper = cleanResult.getUpper();
-        if (!cleanResult.hasUpper()) {
-            upper = upperBound(graph, UpperBoundMode.SUPERMAN);
-            /* TODO research speed and benefits
-            if(graph.getNodes().size() > 1000) {
-                upper = upperBound(graph, UpperBoundMode.DEGREE_DESC);
-            } else {
-                upper = Integer.MAX_VALUE;
-                for(int i = 0; i < graph.getNodes().size(); i++) {
-                    upper = upperBound(graph, UpperBoundMode.SHUFFLE);
-                }
-            }*/
-            TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
-        } else {
-            TestApp.debug("Upper bound (0ms) >> %d, calculated by clean()%n", upper);
+        int upper = upperBoundIterative(graph, UpperBoundMode.SUPERMAN);
+        if(cleanResult.hasUpper()) {
+             upper = Math.min(cleanResult.getUpper(), upper);
         }
+        TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
         TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", upper);
 
-        int lower = cleanResult.getLower();
-        if(!(cleanResult.hasLower())) {
-            lower = graph.getEdges().isEmpty() ? 1 : 2;
-            TestApp.debug("Lower bound (0ms) >> %d%n", lower);
+        /*graph.reset();
+        if(graph.getNodes().size() > 1000) {
+            upper = upperBound(graph, UpperBoundMode.DEGREE_DESC);
         } else {
-            TestApp.debug("Lower bound (0ms) >> %d%n, calculated by clean()", lower);
+            upper = Integer.MAX_VALUE;
+            for(int i = 0; i < 10000; i++) {
+                graph.reset();
+                upper = upperBound(graph, UpperBoundMode.SHUFFLE);
+            }
         }
+        TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
+        */
+
+
+
+        int lower = Math.max(cleanResult.getLower(), graph.getEdges().isEmpty() ? 1 : 2);
+        TestApp.debug("Lower bound (0ms) >> %d%n", lower);
         TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
         if (upper == lower) {
             TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
             TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
             return new Result(graph, upper, upper, upper, true);
-        } else if((upper > 4 || graph.getNodes().size() < 1000) && !cleanResult.hasLower()) {
+        } else if((upper > 4 || graph.getNodes().size() < 1000)) {
             graph.reset();
             time = System.currentTimeMillis();
-            lower = lowerBound(graph, upper);
+            lower = Math.max(lower, lowerBound(graph, upper));
             TestApp.debug("Lower bound (%dms) >> %d%n", (System.currentTimeMillis() - time), lower);
             TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
-            // TODO that should never happen, so why is this here?
-            if (lower > upper) {
-                lower = graph.getEdges().isEmpty() ? 1 : 2;
-            }
 
             if (upper == lower) {
                 TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
@@ -301,13 +291,6 @@ public class ChromaticNumber {
     }
 
     /**
-     * Runs and returns {@link ChromaticNumber#upperBoundIterative(Graph,UpperBoundMode)}.
-     */
-    private static int upperBound(Graph graph, UpperBoundMode mode) {
-        return upperBoundIterative(graph, mode);
-    }
-
-    /**
      * Colours the graph with the greedy-algorithm. - It simply goes to every node and at every node it checks
      * if it can just reuse a colour to colour the node, or if it has to create a new colour.
      * @param graph The graph to perform the computation on.
@@ -442,6 +425,7 @@ public class ChromaticNumber {
                 _R.add(v);
 
 
+                int tMax = max;
                 max = Math.max(max, bronKerboschWithPivot(
                         graph,
                         _R,

@@ -7,9 +7,8 @@ public class ImageGenerator {
 
     public static void main(String[] args) {
         for(int i = 1; i <= 20; i++) {
-            Graph graph = GraphReader.parseGraph(String.format("src/main/java/data/block3_2018_graph%02d.txt", i));
-            GraphCleaner.clean(graph);
-            GephiConverter.generateGephiFile(graph, String.format("block3_2018_graph%02d.txt", i));
+            Graph graph = GraphReader.parseGraph(String.format("src/main/java/data/block3/block3_2018_graph%02d.txt", i));
+            //GephiConverter.generateGephiFile(graph, String.format("block3_2018_graph%02d.txt", i));
         }
     }
 

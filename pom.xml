@@ -41,7 +41,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <archive>
-                        <manifest>
+                        <manifest>-
                             <mainClass>edu.group20.chromflow.TestApp</mainClass>
                         </manifest>
                     </archive>
