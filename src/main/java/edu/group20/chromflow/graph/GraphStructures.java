@@ -5,7 +5,6 @@ import Jama.Matrix;
 import edu.group20.chromflow.TestApp;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class GraphStructures {
@@ -223,9 +222,10 @@ public class GraphStructures {
     }
 
 
-    public static class Biconnected {
+    public static class Connectivity {
         // Source: https://algs4.cs.princeton.edu/41graph/Biconnected.java.html
-
+        // https://www.whitman.edu/Documents/Academics/Mathematics/stevens.pdf - Theorem 3.8
+        // -> Any k-regular graph of connectivity one has a chromatic number of k.
         public static class Simple {
             public static boolean check(Graph graph) {
                 if (!GraphStructures.Test.isConnected(graph)) {
@@ -234,18 +234,14 @@ public class GraphStructures {
 
                 graph.reset();
                 Map<Integer, Integer> low = new HashMap<>();
-                Map<Integer, Integer> pre = new HashMap<>();
-
-                AtomicInteger cnt = new AtomicInteger(0);
 
                 for (Node n : graph.getNodes().values()) {
                     low.put(n.getId(), -1);
-                    pre.put(n.getId(), -1);
                 }
 
                 for (Node n : graph.getNodes().values()) {
-                    if (pre.get(n.getId()) == -1) {
-                        if(dfs(graph, n.getId(), n.getId(), low, pre, cnt)) {
+                    if (n.getValue() == -1) {
+                        if(dfs(graph, n, n, low)) {
                             return true;
                         }
                     }
@@ -254,42 +250,44 @@ public class GraphStructures {
                 return false;
             }
 
-            private static boolean dfs(Graph G, int u, int v, Map<Integer, Integer> low, Map<Integer, Integer> pre, AtomicInteger cnt) {
-                int children = 0;
-                pre.put(v, cnt.incrementAndGet());
-                low.put(v, pre.get(v));
+            private static boolean dfs(Graph graph, Node u, Node v, Map<Integer, Integer> low) {
+                final Node pre = graph.getNextAvailableNode(u);
+                if(pre == null) return false;
 
-                for (int w : G.getEdges(v).keySet()) {
-                    if (pre.get(w) == -1) {
+                int children = 0;
+
+                v.setValue(pre.getId());
+                low.put(v.getId(), pre.getId());
+
+                for (Node w : graph.getNeighbours(v)) {
+                    if (w.getValue() == -1) {
                         children++;
-                        if(dfs(G, v, w, low, pre, cnt)) {
+                        if(dfs(graph, v, w, low)) {
                             return true;
                         }
 
 
                         // update low number
-                        low.put(v, Math.min(low.get(v), low.get(w)));
+                        low.put(v.getId(), Math.min(low.get(v.getId()), low.get(w.getId())));
 
                         // non-root of DFS is an articulation point if low[w] >= pre[v]
-                        if (low.get(w) >= pre.get(v) && u != v) {
+                        if (low.get(w.getId()) >= v.getValue() && u != v) {
                             return true;
                         }
                     }
 
                     // update low number - ignore reverse of edge leading to v
                     else if (w != u) {
-                        low.put(v, Math.min(low.get(v), pre.get(w)));
+                        low.put(v.getId(), Math.min(low.get(v.getId()), w.getValue()));
                     }
                 }
 
                 // root of DFS is an articulation point if it has more than 1 child
-                if(u == v && children > 1) {
-                    return true;
-                }
+                return u == v && children > 1;
 
-                return false;
             }
         }
+
 
         public static class Points {
             public static Set<Integer> check(Graph graph) {
@@ -299,58 +297,60 @@ public class GraphStructures {
 
                 graph.reset();
                 Map<Integer, Integer> low = new HashMap<>();
-                Map<Integer, Integer> pre = new HashMap<>();
                 Set<Integer> points = new HashSet<>();
-
-                AtomicInteger cnt = new AtomicInteger(0);
 
                 for (Node n : graph.getNodes().values()) {
                     low.put(n.getId(), -1);
-                    pre.put(n.getId(), -1);
                 }
 
                 for (Node n : graph.getNodes().values()) {
-                    if (pre.get(n.getId()) == -1) {
-                        dfs(graph, n.getId(), n.getId(), low, pre, points, cnt);
+                    if (n.getValue() == -1) {
+                        dfs(graph, n, n, low, points);
                     }
                 }
 
                 return points;
             }
 
-            private static void dfs(Graph G, int u, int v, Map<Integer, Integer> low, Map<Integer, Integer> pre, Set<Integer> points, AtomicInteger cnt) {
+            private static void dfs(Graph graph, Node u, Node v, Map<Integer, Integer> low, Set<Integer> points) {
+                final Node pre = graph.getNextAvailableNode(u);
+                if(pre == null) {
+                    return;
+                }
+
                 int children = 0;
-                pre.put(v, cnt.incrementAndGet());
-                low.put(v, pre.get(v));
 
-                for (int w : G.getEdges(v).keySet()) {
-                    if (pre.get(w) == -1) {
+                v.setValue(pre.getId());
+                low.put(v.getId(), pre.getId());
+
+                for (Node w : graph.getNeighbours(v)) {
+                    if (w.getValue() == -1) {
                         children++;
-                        dfs(G, v, w, low, pre, points, cnt);
-
+                        dfs(graph, v, w, low, points);
 
                         // update low number
-                        low.put(v, Math.min(low.get(v), low.get(w)));
+                        low.put(v.getId(), Math.min(low.get(v.getId()), low.get(w.getId())));
 
                         // non-root of DFS is an articulation point if low[w] >= pre[v]
-                        if (low.get(w) >= pre.get(v) && u != v) {
-                            points.add(v);
+                        if (low.get(w.getId()) >= v.getValue() && u != v) {
+                            points.add(v.getId());
                         }
                     }
 
                     // update low number - ignore reverse of edge leading to v
                     else if (w != u) {
-                        low.put(v, Math.min(low.get(v), pre.get(w)));
+                        low.put(v.getId(), Math.min(low.get(v.getId()), w.getValue()));
                     }
                 }
 
                 // root of DFS is an articulation point if it has more than 1 child
                 if(u == v && children > 1) {
-                    points.add(v);
+                    points.add(v.getId());
                 }
 
             }
         }
+
 
     }
 

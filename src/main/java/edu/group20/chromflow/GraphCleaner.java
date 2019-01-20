@@ -25,8 +25,6 @@ public class GraphCleaner {
         long time = System.currentTimeMillis();
         //removing single nodes
 
-        final boolean isBiconnective = graph.getEdgeCount() <= 50_000 && GraphStructures.Biconnected.Simple.check(graph);
-
         {
             time = System.currentTimeMillis();
             final double initial_nodes = graph.getNodes().size();
@@ -66,26 +64,6 @@ public class GraphCleaner {
             if (initial_nodes > 0 && graph.getNodes().isEmpty()) {
                 return new Result(2, 2, 2);
             }
-        }
-
-        //is k-regular
-        if(graph.getEdgeCount() <= 50_000){
-            LinkedList<Map<Integer, Node.Edge>> values = new LinkedList<>(graph.getEdges().values());
-            int kRegular = values.get(0).size();
-            for (int i = 1; i < values.size() && kRegular != -1; i++) {
-                if(values.get(i).size() != kRegular) {
-                    kRegular = -1;
-                }
-            }
-            TestApp.debug("Cleaning (%dms) >> k-regular, k: %s%n",
-                    (System.currentTimeMillis() - time),
-                    (kRegular == -1 ? "NA" : String.valueOf(kRegular))
-            );
-
-            if(kRegular != -1 && (isBiconnective || GraphStructures.Biconnected.Simple.check(graph))) {
-                return new Result(kRegular, kRegular, kRegular);
-            }
-
         }
 
         //fully-connected nodes
@@ -168,6 +146,26 @@ public class GraphCleaner {
             if(oddWheels + evenWheels > 0) {
                 bestLower = Math.max(bestLower, evenWheels > 0 ? 4 : 3);
             }
+        }
+
+        //is k-regular
+        {
+            LinkedList<Map<Integer, Node.Edge>> values = new LinkedList<>(graph.getEdges().values());
+            int kRegular = values.get(0).size();
+            for (int i = 1; i < values.size() && kRegular != -1; i++) {
+                if(values.get(i).size() != kRegular) {
+                    kRegular = -1;
+                }
+            }
+            TestApp.debug("Cleaning (%dms) >> k-regular, k: %s%n",
+                    (System.currentTimeMillis() - time),
+                    (kRegular == -1 ? "NA" : String.valueOf(kRegular))
+            );
+
+            if(kRegular != -1 && GraphStructures.Connectivity.Simple.check(graph)) {
+                return new Result(kRegular, kRegular, kRegular);
+            }
+
         }
 
         //--- Planar Graphs
