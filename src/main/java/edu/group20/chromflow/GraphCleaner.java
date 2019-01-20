@@ -118,6 +118,7 @@ public class GraphCleaner {
         //Wheels
         //TODO seems to be working, better qualifier required
         if(graph.getNodes().size() < 1000) {
+            time = System.currentTimeMillis();
             graph.reset();
             int oddWheels = 0;
             int evenWheels = 0;
@@ -150,6 +151,8 @@ public class GraphCleaner {
 
         //is k-regular
         {
+            time = System.currentTimeMillis();
+
             LinkedList<Map<Integer, Node.Edge>> values = new LinkedList<>(graph.getEdges().values());
             int kRegular = values.get(0).size();
             for (int i = 1; i < values.size() && kRegular != -1; i++) {
@@ -157,13 +160,31 @@ public class GraphCleaner {
                     kRegular = -1;
                 }
             }
+
             TestApp.debug("Cleaning (%dms) >> k-regular, k: %s%n",
                     (System.currentTimeMillis() - time),
                     (kRegular == -1 ? "NA" : String.valueOf(kRegular))
             );
 
-            if(kRegular != -1 && GraphStructures.Connectivity.Simple.check(graph)) {
-                return new Result(kRegular, kRegular, kRegular);
+            /**
+             * This segment is based on two theorems from this paper
+             *  Brandes algorithm [PDF]. (n.d.). Retrieved from https://www.cl.cam.ac.uk/teaching/1617/MLRD/handbook/brandes.pdf
+             *   I Theory 3.8 states that every one-connectivity and k-regular graph has k as its chromatic number
+             *   II Theory 3.9 states that every two-connectivity and k-regular graph has k as its upper-bound
+             */
+            if(kRegular != -1) {
+                time = System.currentTimeMillis();
+                if(GraphStructures.Connectivity.TwoConnectivity.check(graph)) {
+                    bestUpper = Math.min(bestUpper, kRegular);
+                    TestApp.debug("Cleaning (%dms) > k-regular, two-connected%n",
+                            (System.currentTimeMillis() - time)
+                    );
+                }/* else if(GraphStructures.Connectivity.Test.check(graph)) {
+                    TestApp.debug("Cleaning (%dms) > k-regular, one-connectivity",
+                            (System.currentTimeMillis() - time)
+                    );
+                    return new Result(kRegular, kRegular, kRegular);
+                }*/
             }
 
         }

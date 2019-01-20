@@ -70,7 +70,7 @@ public class TestGraphs {
             3, -1, -1, -1, 2, 3, -1, 98, -1, 3, 15, 2, -1, 4, -1, -1, 8, 10, 11, 9
         };
         HashSet<Integer> ignore = new HashSet<>(Arrays.asList(
-                2,3,4,7,9,13,15,16
+                2,3,4,7,9,13,15,16 //we can solve 4 just takes 20mins
         ));
 
         for (int i = 1; i <= 20; i++) {

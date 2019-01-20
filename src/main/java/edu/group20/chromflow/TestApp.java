@@ -13,11 +13,12 @@ public class TestApp {
     public static void main(String[] args) {
 
         //graph04.txt breaks isPlanar
-        args = new String[] {"src/main/java/data/block1/graph15.txt"};
+        args = new String[] {"src/main/java/data/block3/block3_2018_graph14.txt"};
         Graph graph = GraphReader.parseGraph(args[0]);
 
         GephiConverter.generateGephiFile(graph, "___");
-        //System.out.println(GraphStructures.Connectivity.Points.check(graph));
+        //GraphCleaner.clean(graph);
+        //System.out.println(GraphStructures.Connectivity.Simple.check(graph));
         debug("Result>> %s%n", ChromaticNumber.computeExact(graph, true));
     }
 

@@ -224,9 +224,8 @@ public class GraphStructures {
 
     public static class Connectivity {
         // Source: https://algs4.cs.princeton.edu/41graph/Biconnected.java.html
-        // https://www.whitman.edu/Documents/Academics/Mathematics/stevens.pdf - Theorem 3.8
-        // -> Any k-regular graph of connectivity one has a chromatic number of k.
-        public static class Simple {
+        public static class TwoConnectivity {
+
             public static boolean check(Graph graph) {
                 if (!GraphStructures.Test.isConnected(graph)) {
                     return false;
@@ -288,6 +287,42 @@ public class GraphStructures {
             }
         }
 
+
+        public static class OneConnectivity {
+
+            public static boolean check(Graph graph) {
+                List<Node> nodes = new LinkedList<>(graph.getNodes().values());
+                for(int i = 0; i < nodes.size(); i++) {
+                    graph.reset();
+
+                    Node n = nodes.get(i);
+                    n.setValue(0);
+
+                    if(i == nodes.size() - 1) {
+                        if(!isConnected(graph, nodes.get(i - 1), n)) {
+                            return true;
+                        }
+                    } else if(!isConnected(graph, nodes.get(i + 1), n)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            private static boolean isConnected(Graph graph, Node start, Node b) {
+                Stack<Node> nodes = new Stack<>();
+                nodes.push(start);
+
+                while (!(nodes.isEmpty())) {
+                    Node n = nodes.pop();
+                    n.setValue(0);
+                    nodes.addAll(graph.getNeighbours(n).stream().filter(e -> e != start && e.getValue() == -1).collect(Collectors.toList()));
+                }
+
+                return graph.getNodes().values().stream().noneMatch(e -> e != start && e.getValue() == -1);
+            }
+
+        }
 
         public static class Points {
             public static Set<Integer> check(Graph graph) {
