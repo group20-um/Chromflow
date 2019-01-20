@@ -77,6 +77,7 @@ public class TestGraphs {
 
             if(ignore.contains(i))continue;
 
+            System.out.println("next up " + i);
             Graph g = GraphReader.parseGraph(String.format("src/main/java/data/block3/block3_2018_graph%02d.txt", i));
             Assertions.assertNotNull(g);
 

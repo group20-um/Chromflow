@@ -12,24 +12,12 @@ public class ChromaticNumber {
     public static Result computeExact(Graph graph, boolean clean) {
         graph.reset();
         final GraphCleaner.Result cleanResult = clean ? GraphCleaner.clean(graph) : new GraphCleaner.Result(-1, -1, -1);
-        return exactTest(graph, cleanResult, false);
-    }
-
-    /**
-     * The basic lower bound checks returns the least amount of connections that can be found in the graph. If the least-amount
-     * is only 1 then it will return 2, because there will be at least 2 nodes which means they require at least 2 different
-     * colours.
-     * @param graph The graph to perform the computation on.
-     * @return The lower bound.
-     */
-    private static int basicLowerBound(Graph graph) {
-        int tmp = graph.getEdges().entrySet().stream().mapToInt(e -> e.getValue().size()).min().getAsInt();
-        return Math.max(tmp,2) ;
+        return exactTest(graph, cleanResult);
     }
 
 
     // --- EXACT_EXPERIMENTAL SECTION ---
-    private static Result exactTest(Graph graph, GraphCleaner.Result cleanResult, boolean runTimeBound) {
+    private static Result exactTest(Graph graph, GraphCleaner.Result cleanResult) {
 
         // This can happen when GraphCleaner breaks down a fully-connected graph
         if(graph.getNodes().size() == 1) {

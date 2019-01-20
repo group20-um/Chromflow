@@ -24,11 +24,15 @@ public class GraphCleaner {
 
         long time = System.currentTimeMillis();
         //removing single nodes
+
+        final boolean isBiconnective = graph.getEdgeCount() <= 50_000 && GraphStructures.Biconnected.Simple.check(graph);
+
         {
             time = System.currentTimeMillis();
-            final double inital_nodes = graph.getNodes().size();
-            final double inital_density = graph.getDensity();
-            final double inital_edges = graph.getEdgeCount();
+            final double initial_nodes = graph.getNodes().size();
+            final double initial_density = graph.getDensity();
+            final double initial_edges = graph.getEdgeCount();
+
 
             // remove singles
             Stack<Integer> singleNodes = graph.getNodes().keySet().stream().filter(id -> graph.getDegree(id) <= 1).collect(Collectors.toCollection(Stack::new));
@@ -51,17 +55,37 @@ public class GraphCleaner {
             TestApp.debug("Cleaning (%dms) >> Removing singles, nodes: %d (%.6f%%), edges: %d (%.6f%%), density: %.6f%% (%.6f%%) %n",
                     (System.currentTimeMillis() - time),
                     graph.getNodes().size(),
-                    (1D - (graph.getNodes().size() / inital_nodes)) * 100,
+                    (1D - (graph.getNodes().size() / initial_nodes)) * 100,
                     graph.getEdgeCount(),
-                    (1D - (graph.getEdgeCount() / inital_edges)) * 100,
+                    (1D - (graph.getEdgeCount() / initial_edges)) * 100,
                     graph.getDensity() * 100,
-                    inital_density * 100
+                    initial_density * 100
             );
 
             //--- Tree
-            if (inital_nodes > 0 && graph.getNodes().isEmpty()) {
+            if (initial_nodes > 0 && graph.getNodes().isEmpty()) {
                 return new Result(2, 2, 2);
             }
+        }
+
+        //is k-regular
+        if(graph.getEdgeCount() <= 50_000){
+            LinkedList<Map<Integer, Node.Edge>> values = new LinkedList<>(graph.getEdges().values());
+            int kRegular = values.get(0).size();
+            for (int i = 1; i < values.size() && kRegular != -1; i++) {
+                if(values.get(i).size() != kRegular) {
+                    kRegular = -1;
+                }
+            }
+            TestApp.debug("Cleaning (%dms) >> k-regular, k: %s%n",
+                    (System.currentTimeMillis() - time),
+                    (kRegular == -1 ? "NA" : String.valueOf(kRegular))
+            );
+
+            if(kRegular != -1 && (isBiconnective || GraphStructures.Biconnected.Simple.check(graph))) {
+                return new Result(kRegular, kRegular, kRegular);
+            }
+
         }
 
         //fully-connected nodes
@@ -78,7 +102,6 @@ public class GraphCleaner {
                 //Smallest actually contains leaves
                 List<Graph> smallest = new LinkedList<>();
 
-                int i = 1;
                 while (!subgraphs.isEmpty()) {
                     Graph g = subgraphs.pop();
 
@@ -89,7 +112,6 @@ public class GraphCleaner {
                     if (_S.isEmpty()) {
                         smallest.add(g);
                     } else {
-                        i++;
                         _S.forEach(e -> e.getMeta().setLevel(g.getMeta().getLevel() + 1)); // increase the levels of the next level of subgraphs
                         subgraphs.addAll(_S); // add to look at them
                     }
@@ -112,45 +134,6 @@ public class GraphCleaner {
                 return new Result(exact, exact, exact);
                 //return new ChromaticNumber.Result(graph, exact, exact, exact, true);
 
-            }
-        }
-
-
-        //is k-regular
-        {
-            LinkedList<Map<Integer, Node.Edge>> values = new LinkedList<>(graph.getEdges().values());
-            int kRegular = values.get(0).size();
-            for (int i = 1; i < values.size() && kRegular != -1; i++) {
-                if(values.get(i).size() != kRegular) {
-                    kRegular = -1;
-                }
-            }
-            TestApp.debug("Cleaning (%dms) >> k-regular, k: %s%n",
-                    (System.currentTimeMillis() - time),
-                    (kRegular == -1 ? "NA" : String.valueOf(kRegular))
-            );
-
-            if(kRegular != -1) {
-                switch (kRegular) {
-
-                    case 4: {
-                        // https://www.fmf.uni-lj.si/~klavzar/preprints/b-CubicFinal.pdf
-                        // 4-regular graphs can be coloured with an upper bound of 4 colours.
-                        // There are only 4 exceptions to this rule.
-                        //    - Petersen graph
-                        //    - K3,3 3 nodes & kRegular == 3, cannot happen
-                        if(
-                            !((graph.getNodes().size() == 10 && graph.getEdgeCount() == 30)  // Petersen Graph
-                            //|| (graph.getNodes().size() == 3 && kRegular == 3) K3,3
-                            //|| (graph.getNodes().size() == 5 %% kRegular == 5) K5,5
-                            || graph.getEdgeCount() == 20)
-                        )
-                        {
-                           bestUpper = Math.min(bestUpper, 4);
-                        }
-                    }
-
-                }
             }
         }
 

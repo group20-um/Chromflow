@@ -12,16 +12,11 @@ public class TestApp {
 
     public static void main(String[] args) {
 
-        //TODO Current profile runs with GC disabled!!!
-        //2,3,4,7,9,
-        // planar, very high chance, 13,14,
-        // planar graph: 13, 14, 16
-        // 15,
-
         //graph04.txt breaks isPlanar
-        args = new String[] {"src/main/java/data/block3/block3_2018_graph14.txt"};
+        args = new String[] {"src/main/java/data/block3/block3_2018_graph05.txt"};
         Graph graph = GraphReader.parseGraph(args[0]);
         GephiConverter.generateGephiFile(graph, "___");
+        //System.out.println(GraphStructures.Biconnected.Points.check(graph));
         debug("Result>> %s%n", ChromaticNumber.computeExact(graph, true));
     }
 
