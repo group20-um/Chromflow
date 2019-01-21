@@ -226,6 +226,10 @@ public class GraphStructures {
         // Source: https://algs4.cs.princeton.edu/41graph/Biconnected.java.html
         public static class TwoConnectivity {
 
+            // https://www.sanfoundry.com/java-program-check-whether-graph-biconnected/
+            // This is based on checking whether or not the graph has articulation vertices,
+            // if the graph has no articulation vertices, it is biconnected:
+            // "Therefore a biconnected graph has no articulation vertices."
             public static boolean check(Graph graph) {
                 if (!GraphStructures.Test.isConnected(graph)) {
                     return false;
