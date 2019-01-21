@@ -18,7 +18,7 @@ public class TestApp {
         // 15,
 
         //graph04.txt breaks isPlanar
-        args = new String[] {"src/main/java/data/block3/block3_2018_graph20.txt"};
+        args = new String[] {"src/main/java/data/block3/block3_2018_graph04.txt"};
         Graph graph = GraphReader.parseGraph(args[0]);
 
         debug("Result>> %s%n", ChromaticNumber.computeExact(graph, true));

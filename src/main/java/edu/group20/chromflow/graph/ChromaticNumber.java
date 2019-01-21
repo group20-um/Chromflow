@@ -128,38 +128,36 @@ public class ChromaticNumber {
             TestApp.debug("Sort nodes by relation (%dms) >> Done%n", (System.currentTimeMillis() - time));
         }
         if(SORT_BY_K_SHORTEST_PATH) {
-            time = System.currentTimeMillis();
             graph.reset();
-            Map<Integer, Integer> score = new HashMap<>();
+            Map<Integer, Double> score = new HashMap<>();
+            double maxScore = Double.MIN_VALUE;
             for(Node n : graph.getNodes().values()) {
                 graph.reset();
-                Dijkstra.buildPaths(graph, n.getId()).values().forEach(i -> {
-                    score.put(i, score.getOrDefault(i, 0) + 1);
-                });
-            }
-            nodes = Mergesort.sort(nodes, new Comparator<Node>() {
-                @Override
-                public int compare(Node o1, Node o2) {
-                    return -Integer.compare(score.get(o1.getId()), score.get(o2.getId()));
-                }
-            });
+                Map<Integer, Integer> previous = Dijkstra.buildPaths(graph, n.getId());
 
-            graph.reset();
-            int value = Integer.MAX_VALUE;
-            for(Node n : nodes) {
-                if(n.getValue() == -1) {
-                    n.setValue(value);
-                    int finalValue = value;
-                    graph.getEdges(n.getId()).values().forEach(e -> e.getTo().setValue(finalValue));
-                    value--;
+                for(int prev : previous.values()) {
+                    final double v = score.getOrDefault(prev, 0D) + 1;
+                    maxScore = Math.max(v, maxScore);
+                    score.put(prev, v);
                 }
             }
-            nodes = Mergesort.sort(nodes, new Comparator<Node>() {
-                @Override
-                public int compare(Node o1, Node o2) {
-                    return -Integer.compare(o1.getValue(), o2.getValue());
+            Stack<Node> stack = Mergesort.sort(nodes, (o1, o2) -> -Double.compare(score.getOrDefault(o1.getId(), 0D), score.getOrDefault(o2.getId(), 0D)))
+                    .stream().collect(Collectors.toCollection(Stack::new));
+            nodes.clear();
+            graph.reset();
+            while (!stack.isEmpty()) {
+                Node n = stack.pop();
+                if(n.getValue() != -1) continue;
+                nodes.add(n);
+                n.setValue(0);
+                for(Node.Edge e : graph.getEdges(n.getId()).values()) {
+                    if(e.getTo().getValue() == -1) {
+                        nodes.add(e.getTo());
+                        e.getTo().setValue(0);
+                    }
                 }
-            });
+            }
+
             TestApp.debug("Sort nodes by k-shortest-path (%dms) >> Done%n", (System.currentTimeMillis() - time));
         }
         //---
@@ -441,7 +439,6 @@ public class ChromaticNumber {
 
                 _R.add(v);
 
-
                 max = Math.max(max, bronKerboschWithPivot(
                         graph,
                         _R,
@@ -450,8 +447,6 @@ public class ChromaticNumber {
                         upperBound
                 ));
 
-                // TODO Verify, if the max clique is equal to our upperBound then we are done right? Greatly reduces
-                //  time to compute lowerBound for benchmark/miles1500.col
                 if(max == upperBound) {
                     return max;
                 }

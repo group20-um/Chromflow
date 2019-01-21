@@ -73,7 +73,6 @@ public class GraphCleaner {
                 //Smallest actually contains leaves
                 List<Graph> smallest = new LinkedList<>();
 
-                int i = 1;
                 while (!subgraphs.isEmpty()) {
                     Graph g = subgraphs.pop();
 
@@ -84,7 +83,6 @@ public class GraphCleaner {
                     if (_S.isEmpty()) {
                         smallest.add(g);
                     } else {
-                        i++;
                         _S.forEach(e -> e.getMeta().setLevel(g.getMeta().getLevel() + 1)); // increase the levels of the next level of subgraphs
                         subgraphs.addAll(_S); // add to look at them
                     }
@@ -170,7 +168,7 @@ public class GraphCleaner {
         }
 
         // finding communities
-        if(false) {
+        if(true && graph.getMeta().getLevel() == -1) {
             time = System.currentTimeMillis();
             graph.reset();
             LinkedList<Node> nodes = new LinkedList<>(graph.getNodes().values());
@@ -190,6 +188,30 @@ public class GraphCleaner {
                 score.put(entry.getKey(), (entry.getValue() / maxScore));
             }
             nodes = Mergesort.sort(nodes, (o1, o2) -> -Double.compare(score.getOrDefault(o1.getId(), 0D), score.getOrDefault(o2.getId(), 0D)));
+            for(int i = 0; i < 10; i++) {
+                Node a = nodes.get(i);
+                for(int x = 0; x < 10; x++) {
+                    Node b = nodes.get(x);
+                    if(graph.hasEdge(a.getId(), b.getId())) {
+                        graph.getEdges(a.getId()).remove(b.getId());
+                        graph.getEdges(b.getId()).remove(a.getId());
+                    }
+                }
+            }
+
+            LinkedList<Graph> sub = new LinkedList<>();
+            graph.reset();
+            for (Node node : graph.getNodes().values()) {
+                // n.v != -1 means that it already belongs to another subgraph so we can skip it
+                if (node.getValue() != -1) continue;
+                sub.add(discoverGraph(graph, node));
+            }
+
+            for(Graph g : sub) {
+                g.getMeta().setLevel(1);
+                System.out.println(ChromaticNumber.computeExact(g, true));
+            }
+            GephiConverter.generateGephiFile(graph, "graph_test_communities");
             TestApp.debug("Sort nodes by k-shortest-path (%dms) >> Done%n", (System.currentTimeMillis() - time));
         }
 
