@@ -20,62 +20,20 @@ public class ChromaticNumber {
      */
     public static Result computeExact(Graph graph, boolean clean, int depth) {
 
-        // TODO only for the tournament, maybe not... maybe it is a good idea to do this always. currently we
-        //  are doing the same work twice...
-        if(TestApp.GOD_KELK_MODE) {
-            int upper = upperBoundIterative(graph, UpperBoundMode.SUPERMAN);
-            int lower = graph.getEdges().isEmpty() ? 1 : 2;
-            if(upper > 4 || graph.getEdgeCount() < 100_000) {
-                lower = lowerBound(graph, upper);
-            }
-            TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", upper);
-            TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
-
-            if(lower == upper) {
-                TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
-                return new Result(graph, lower, lower, lower, true);
-            }
-        }
-
-        graph.reset();
-        TestApp.OUTPUT_ENABLED = depth == 0 || TestApp.FORCE_OUTPUT;
-        final GraphCleaner.Result cleanResult = clean ? GraphCleaner.clean(graph, depth) : new GraphCleaner.Result(-1, -1, -1);
-        TestApp.OUTPUT_ENABLED = depth == 0 || TestApp.FORCE_OUTPUT;
-        return exactTest(graph, cleanResult);
-    }
-
-    /**
-     * The main method responsible for computing upper and lower bounds on the given graph and then finally testing
-     * inside the bounds for the chromatic number.
-     * @param graph The graph to check.
-     * @param cleanResult Possible results from the {@link GraphCleaner#clean(Graph,int)} method.
-     * @return Never null, a class containing bounds and the exact chromatic number.
-     */
-    private static Result exactTest(Graph graph, GraphCleaner.Result cleanResult) {
-
-        // This can happen when GraphCleaner breaks down a fully-connected graph
         if(graph.getNodes().size() == 1) {
-            cleanResult = new GraphCleaner.Result(1, 1, 1);
-        }
-
-        if(cleanResult.hasExact()) {
-            TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", cleanResult.getExact());
-            TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", cleanResult.getExact());
-            TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", cleanResult.getExact());
-            return new Result(graph, cleanResult.getExact(), cleanResult.getExact(), cleanResult.getExact(), true);
+           return new Result(graph,1, 1, 1, true);
         }
 
         //---
+        // This can happen when GraphCleaner breaks down a fully-connected graph
         long time = System.currentTimeMillis();
         graph.reset();
         int upper = upperBoundIterative(graph, UpperBoundMode.SUPERMAN);
-        if(cleanResult.hasUpper()) {
-             upper = Math.min(cleanResult.getUpper(), upper);
-        }
+
         TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
         TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", upper);
 
-        int lower = Math.max(cleanResult.getLower(), graph.getEdges().isEmpty() ? 1 : 2);
+        int lower = graph.getEdges().isEmpty() ? 1 : 2;
         TestApp.debug("Lower bound (0ms) >> %d%n", lower);
         TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
@@ -98,6 +56,41 @@ public class ChromaticNumber {
             }
         }
 
+        // Cleaner
+        graph.reset();
+        TestApp.OUTPUT_ENABLED = depth == 0 || TestApp.FORCE_OUTPUT;
+        GraphCleaner.Result cleanResult = clean ? GraphCleaner.clean(graph, depth) : new GraphCleaner.Result(-1, -1, -1);
+        TestApp.OUTPUT_ENABLED = depth == 0 || TestApp.FORCE_OUTPUT;
+
+        // compare with current bounds
+        lower = cleanResult.getLower() == -1 ? lower : Math.max(cleanResult.getLower(), lower);
+        upper = cleanResult.getUpper() == -1 ? upper : Math.min(cleanResult.getUpper(), upper);
+
+        if(lower == upper) {
+            cleanResult = new GraphCleaner.Result(lower, upper, upper);
+        }
+
+        if(cleanResult.hasExact()) {
+            TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", cleanResult.getExact());
+            TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", cleanResult.getExact());
+            TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", cleanResult.getExact());
+            return new Result(graph, cleanResult.getExact(), cleanResult.getExact(), cleanResult.getExact(), true);
+        }
+
+
+        return exactTest(graph, lower, upper);
+    }
+
+    /**
+     * The main method responsible for computing upper and lower bounds on the given graph and then finally testing
+     * inside the bounds for the chromatic number.
+     * @param graph The graph to check.
+     * @param cleanResult Possible results from the {@link GraphCleaner#clean(Graph,int)} method.
+     * @return Never null, a class containing bounds and the exact chromatic number.
+     */
+    private static Result exactTest(Graph graph, final int lower, final int upper) {
+
+        long time = System.currentTimeMillis();
         graph.reset();
 
         //---

@@ -11,7 +11,7 @@ public class TestApp {
     public static boolean FORCE_OUTPUT = false;
 
     public static void main(String[] args) {
-        args = new String[] {"src/main/java/data/block3/block3_2018_graph05.txt"};
+        args = new String[] {"src/main/java/data/block3/block3_2018_graph16.txt"};
         Graph graph = GraphReader.parseGraph(args[0]);
         debug("Result>> %s%n", ChromaticNumber.computeExact(graph, true, 0));
 
