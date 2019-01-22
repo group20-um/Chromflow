@@ -6,12 +6,12 @@ import edu.group20.chromflow.misc.GraphReader;
 
 public class TestApp {
 
-    public final static boolean GOD_KELK_MODE = true;
+    public final static boolean GOD_KELK_MODE = false;
     public static boolean OUTPUT_ENABLED = true;
     public static boolean FORCE_OUTPUT = false;
 
     public static void main(String[] args) {
-        args = new String[] {"src/main/java/data/block3/block3_2018_graph16.txt"};
+        args = new String[] {"src/main/java/data/block3/block3_2018_graph15.txt"};
         Graph graph = GraphReader.parseGraph(args[0]);
         debug("Result>> %s%n", ChromaticNumber.computeExact(graph, true, 0));
 

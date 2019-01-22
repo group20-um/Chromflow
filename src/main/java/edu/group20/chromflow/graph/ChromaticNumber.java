@@ -59,7 +59,7 @@ public class ChromaticNumber {
         // Cleaner
         graph.reset();
         TestApp.OUTPUT_ENABLED = depth == 0 || TestApp.FORCE_OUTPUT;
-        GraphCleaner.Result cleanResult = clean ? GraphCleaner.clean(graph, depth) : new GraphCleaner.Result(-1, -1, -1);
+        GraphCleaner.Result cleanResult = clean ? GraphCleaner.clean(graph, depth, lower, upper) : new GraphCleaner.Result(-1, -1, -1);
         TestApp.OUTPUT_ENABLED = depth == 0 || TestApp.FORCE_OUTPUT;
 
         // compare with current bounds
@@ -85,7 +85,8 @@ public class ChromaticNumber {
      * The main method responsible for computing upper and lower bounds on the given graph and then finally testing
      * inside the bounds for the chromatic number.
      * @param graph The graph to check.
-     * @param cleanResult Possible results from the {@link GraphCleaner#clean(Graph,int)} method.
+     * @param lower Lower bound of the chromatic number.
+     * @param upper Upper bound of the chromatic number.
      * @return Never null, a class containing bounds and the exact chromatic number.
      */
     private static Result exactTest(Graph graph, final int lower, final int upper) {

@@ -14,20 +14,17 @@ public class GraphCleaner {
     /**
      * Cleans the graph by running several algorithms on it.
      * @param graph The graph to clean.
+     * @param lower Lower bound for the chromatic number.
+     * @param upper Upper bound for the chromatic number.
      * @return Returns a result class that can contain the chromatic number or better boundss but this is not
      * guaranteed and heavily depends on the structure of the graph.
      */
-    public static Result clean(Graph graph, int depth) {
+    public static Result clean(final Graph graph, final int depth, int lower, int upper) {
 
         if(graph.isComplete()) {
             TestApp.debug("Cleaning (0ms) >> Detected complete graph.%n");
             return new Result(graph.getNodes().size(), graph.getNodes().size(), graph.getNodes().size());
         }
-
-        // TODO :NothingOfConcern
-        int bestLower = Integer.MIN_VALUE;
-        int bestUpper = Integer.MAX_VALUE;
-        //---
 
         long time = System.currentTimeMillis();
         //removing single nodes
@@ -122,7 +119,7 @@ public class GraphCleaner {
 
         //Wheels
         //TODO seems to be working, better qualifier required
-        if(false && graph.getNodes().size() < 1000) {
+        if(false && graph.getNodes().size() < 1000 && lower < 4) {
             time = System.currentTimeMillis();
             graph.reset();
             int oddWheels = 0;
@@ -152,7 +149,7 @@ public class GraphCleaner {
                     brokeEarly
             );
             if(oddWheels + evenWheels > 0) {
-                bestLower = Math.max(bestLower, evenWheels > 0 ? 4 : 3);
+                lower = Math.max(lower, evenWheels > 0 ? 4 : 3);
             }
         } else {
             TestApp.debugln("Cleaner >> WHEELS CHECK IS DISABLED");
@@ -181,7 +178,7 @@ public class GraphCleaner {
              *   I Theory 3.8 states that every one-connectivity and k-regular graph has k as its chromatic number
              *   II Theory 3.9 states that every two-connectivity and k-regular graph has k as its upper-bound
              */
-            if(kRegular != -1 && GraphStructures.Test.isConnected(graph)) {
+            if(kRegular < upper && kRegular != -1 && GraphStructures.Test.isConnected(graph)) {
                 time = System.currentTimeMillis();
                 if(GraphStructures.Connectivity.OneConnectivity.check(graph)) {
                     TestApp.debug("Cleaning (%dms) > k-regular, one-connectivity",
@@ -189,7 +186,7 @@ public class GraphCleaner {
                     );
                     return new Result(kRegular, kRegular, kRegular);
                 } else if(GraphStructures.Connectivity.TwoConnectivity.check(graph)) {
-                    bestUpper = Math.min(bestUpper, kRegular);
+                    upper = Math.min(upper, kRegular);
                     TestApp.debug("Cleaning (%dms) > k-regular, two-connected%n",
                             (System.currentTimeMillis() - time)
                     );
@@ -249,20 +246,7 @@ public class GraphCleaner {
         }
 
 
-        // TODO :NothingOfConcern
-        if(bestLower != Integer.MIN_VALUE && bestUpper != Integer.MAX_VALUE) {
-            if(bestLower == bestUpper) {
-                return new Result(bestLower, bestUpper, bestLower);
-            } else {
-                return new Result(bestLower, bestUpper, -1);
-            }
-        } else if(bestLower != Integer.MIN_VALUE) {
-            return new Result(bestLower, -1, -1);
-        } else if(bestUpper != Integer.MAX_VALUE) {
-            return new Result(-1, bestUpper, -1);
-        } else{
-            return new Result(-1, -1, -1);
-        }
+        return new Result(lower, upper, -1);
     }
 
     /**
