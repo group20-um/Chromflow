@@ -455,6 +455,7 @@ public class ChromaticNumber {
                         upperBound
                 ));
 
+                // This works surprisingly well and cuts down run-time significantly when we get lucky :D
                 if(max == upperBound) {
                     return max;
                 }
