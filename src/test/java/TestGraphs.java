@@ -1,7 +1,7 @@
 import edu.group20.chromflow.TestApp;
 import edu.group20.chromflow.graph.ChromaticNumber;
 import edu.group20.chromflow.graph.Graph;
-import edu.group20.chromflow.util.GraphReader;
+import edu.group20.chromflow.misc.GraphReader;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -23,7 +23,7 @@ public class TestGraphs {
                 5, 10, 2, 11, 4, 54, 7, 2, 16, 5, 15, 5, 31, 4, 4, 7, 3, 8, 31, 4
         };
         HashSet<Integer> ignore = new HashSet<>(Arrays.asList(
-                1, 6, 7, 11, 12, 16, 18
+                1, 7, 11, 12, 16, 18
         ));
 
         for (int i = 1; i <= 20; i++) {
@@ -33,7 +33,7 @@ public class TestGraphs {
             Graph g = GraphReader.parseGraph(String.format("src/main/java/data/block1/graph%02d.txt", i));
             Assertions.assertNotNull(g);
 
-            ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true);
+            ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true, 0);
             Assertions.assertEquals(results[i-1], r.getExact(), String.format("Graph %02d", i));
 
         }
@@ -57,7 +57,7 @@ public class TestGraphs {
             Graph g = GraphReader.parseGraph(String.format("src/main/java/data/benchmark/%s.col", graph));
             Assertions.assertNotNull(g);
 
-            ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true);
+            ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true, 0);
             Assertions.assertEquals(exactValues[i], r.getExact(), String.format("Graph %s", graph));
 
         }
@@ -67,20 +67,21 @@ public class TestGraphs {
     @Test
     public void testGraphsFromBlock3() {
         int[] results = new int[] {
-            3, -1, -1, -1, 2, 3, -1, 98, -1, 3, 15, 2, -1, -1, -1, -1, 8, 10, 11, 9
+            3, -1, -1, -1, 2, 3, -1, 98, -1, 3, 15, 2, -1, 4, -1, 4, 8, 10, 11, 9
         };
         HashSet<Integer> ignore = new HashSet<>(Arrays.asList(
-                2,3,4,7,9,13,14,15,16
+                2,3,4,7,9,13,14,15 //we can solve 4 just takes 20mins
         ));
 
         for (int i = 1; i <= 20; i++) {
 
             if(ignore.contains(i))continue;
 
+            System.out.println("next up " + i);
             Graph g = GraphReader.parseGraph(String.format("src/main/java/data/block3/block3_2018_graph%02d.txt", i));
             Assertions.assertNotNull(g);
 
-            ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true);
+            ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true, 0);
             Assertions.assertEquals(results[i-1], r.getExact(), String.format("Graph %02d", i));
 
         }

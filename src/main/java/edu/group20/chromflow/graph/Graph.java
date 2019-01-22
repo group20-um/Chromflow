@@ -1,9 +1,9 @@
 package edu.group20.chromflow.graph;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static edu.group20.chromflow.graph.Node.Edge;
 
@@ -16,41 +16,71 @@ public class Graph implements Cloneable {
 
     public Graph() {}
 
+    /**
+     * Returns some data that contains meta information for the graph that is required for some algorithms but not strictly
+     * required for the graph itself.
+     * @return Never null.
+     */
     public Meta getMeta() {
         return this.meta;
     }
 
+    /**
+     * Counts the amount of edges in the graph.
+     * @return
+     */
     public int getEdgeCount() {
         return edges.values().stream().mapToInt(Map::size).sum();
     }
 
+    /**
+     * Returns the degree of a node.
+     * @param node
+     * @return
+     */
     public int getDegree(int node) {
         return this.edges.get(node).size();
     }
 
+    /**
+     * Returns the density of the graph based on the edgeCount / maxEdges
+     * @return
+     */
     public double getDensity() {
         return getEdgeCount() / Math.pow(this.nodes.size(), 2);
     }
 
+    /**
+     * Resets the values of all nodes to '-1'.
+     */
     public void reset() {
         this.nodes.values().forEach(e -> e.setValue(-1));
     }
 
+    /**
+     * Adds a new node if it does not exist yet.
+     * @param id The id of the node.
+     * @param value The value associated with the node.
+     * @return True, if the node was added, false if the id is already part of the graph.
+     */
     public boolean addNode(int id, int value) {
         if(!(this.nodes.containsKey(id))) {
             this.nodes.put(id, new Node(id, value));
+            this.edges.put(id, new HashMap<>());
             return true;
         }
         return false;
     }
 
+    /**
+     * This adds an edge between A -> B.
+     * @param from Start node id.
+     * @param to End node id.
+     * @param bidirectional Adds also a second edge from B -> A.
+     */
     public void addEdge(int from, int to, boolean bidirectional) {
 
         if(bidirectional && hasEdge(from, to)) return;
-
-        if(!(this.edges.containsKey(from))) {
-            this.edges.put(from, new HashMap<>());
-        }
         this.edges.get(from).put(to, new Edge(this.getNode(from), this.getNode(to)));
 
         if(bidirectional) {
@@ -58,6 +88,11 @@ public class Graph implements Cloneable {
         }
     }
 
+    /**
+     * Returns a node based on the given id.
+     * @param i The id of the nod.
+     * @return The node, if it does not exist this throws an {@link IllegalArgumentException}.
+     */
     public Node getNode(int i) {
         if(this.nodes.containsKey(i)) {
             return this.nodes.get(i);
@@ -65,6 +100,11 @@ public class Graph implements Cloneable {
         throw new IllegalArgumentException();
     }
 
+    /**
+     * Gets the node with the next highest id after the given id.
+     * @param start The node to start at.
+     * @return Null, if start is the node with the highest id, otherwise the next node.
+     */
     public Node getNextAvailableNode(Node start) {
         int maxNodeId = getMaxNodeId();
         for(int i = start.getId() + 1; i <= maxNodeId; i++) {
@@ -75,19 +115,36 @@ public class Graph implements Cloneable {
         return null;
     }
 
+    /**
+     * All edges assocaited with the node.
+     * @param node The id of the node.
+     * @return A map of all the associated edges.
+     */
     public Map<Integer, Edge> getEdges(int node) {
-        return this.edges.getOrDefault(node, new HashMap<>());
+        return this.edges.get(node);
     }
 
+    /**
+     * All nodes of the graph.
+     * @return never null.
+     */
     public Map<Integer, Node> getNodes() {
         return this.nodes;
     }
 
+    /**
+     * All edges of the graph.
+     * @return Never null.
+     */
     public Map<Integer, Map<Integer, Edge>> getEdges() {
         return this.edges;
     }
 
 
+    /**
+     * Returns the max node id of the graph.
+     * @return
+     */
     public int getMaxNodeId() {
         int max = Integer.MIN_VALUE;
         for(Node n : nodes.values()) {
@@ -97,6 +154,10 @@ public class Graph implements Cloneable {
         //return this.nodes.values().stream().max(Comparator.comparingInt(Node::getId)).get().getId();
     }
 
+    /**
+     * Returns the min node id of the graph.
+     * @return
+     */
     public int getMinNodeId() {
         int min = Integer.MAX_VALUE;
         for(Node n : nodes.values()) {
@@ -106,14 +167,29 @@ public class Graph implements Cloneable {
         //return this.nodes.values().stream().min(Comparator.comparingInt(Node::getId)).get().getId();
     }
 
+    /**
+     * Checks if there is an edge from A to B.
+     * @param from The start node.
+     * @param to The end node.
+     * @return True, if there is an edge from A -> B, otherwise false.
+     */
     public boolean hasEdge(int from, int to) {
         return this.edges.containsKey(from) && this.edges.get(from).containsKey(to);
     }
 
+    /**
+     * Checks if the graph has a node with the given id.
+     * @param node The id of the node.
+     * @return True, if the node exists, otherwise false.
+     */
     public boolean hasNode(int node) {
         return this.nodes.containsKey(node);
     }
 
+    /**
+     * Clones the graph by copying all the nodes and edges.
+     * @return
+     */
     @Override
     public Graph clone() {
         Graph clone = new Graph();
@@ -123,14 +199,34 @@ public class Graph implements Cloneable {
     }
 
     //---
+
+    /**
+     * Returns the neighbours of a node.
+     * @param node The node.
+     * @return A list of all neighbours.
+     */
     public List<Node> getNeighbours(Node node){
-        return this.edges.get(node.getId()).values().stream().map(Edge::getTo).collect(Collectors.toList());
+        List<Node> neighbours = new LinkedList<>();
+        for(Node.Edge e : this.edges.get(node.getId()).values()) {
+            neighbours.add(e.getTo());
+        }
+        return neighbours;
+        //return this.edges.get(node.getId()).values().stream().map(Edge::getTo).collect(Collectors.toList());
     }
 
+    /**
+     * Checks if the graph is coloured by validating that no value of a node == -1 which is commonly associated with the
+     * default value of a node. This is not checking if the colouring is valid.
+     * @return
+     */
     public boolean isColored(){
         return nodes.values().stream().noneMatch(n -> n.getValue() == -1);
     }
 
+    /**
+     * Colours all neighbours of a node.
+     * @param nodes
+     */
     public void colourNeighbours( List<Node> nodes){
 
         for(int i=0; i<nodes.size();i++){
@@ -145,6 +241,11 @@ public class Graph implements Cloneable {
         }
     }
 
+    /**
+     * Checks if neighbours have the same colour.
+     * @param node
+     * @return
+     */
     public boolean hasNeighbourSameColour( Node node){
         if(node.getValue()!=-1){
             List<Node> neighbours=this.getNeighbours(node);
@@ -157,10 +258,18 @@ public class Graph implements Cloneable {
         return false;
     }
 
+    /**
+     * Checks if the graph is complete by checking if the degree of every node is n-1 where n = |nodes|.
+     * @return
+     */
     public boolean isComplete(){
         return nodes.keySet().stream().allMatch(id -> edges.get(id).size() == nodes.size() - 1);
     }
 
+    /**
+     * Turns the graph into a adjacency matrix.
+     * @return
+     */
     public double[][] toAdjacentMatrix(){
 
         double[][] adjacentMatrix = new double[nodes.size()][nodes.size()];
@@ -183,6 +292,11 @@ public class Graph implements Cloneable {
 
         return adjacentMatrix;
     }
+
+    /**
+     * Turns the graph into a Laplacian matrix.
+     * @return
+     */
     public double[][] toLaplacianMatrix(){
 
         double[][] laplacianMatrix = new double[nodes.size()][nodes.size()];
@@ -210,7 +324,10 @@ public class Graph implements Cloneable {
         return laplacianMatrix;
     }
 
-
+    /**
+     * A meta class containing some information that is not directly related to the graph but is used in
+     * algorithms related to it.
+     */
     public static class Meta {
         private int level = 0;
 

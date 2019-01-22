@@ -4,6 +4,13 @@ import java.util.*;
 
 public class Dijkstra {
 
+    /**
+     * Runs the dijkstra algorithm from the start node, and returns a map that contains for every node-id (key) a value
+     * to the previously linked node (value). So, you can build a path from every node in the graph back to the start node.
+     * @param graph The graph to perform the computations on.
+     * @param start The start node id.
+     * @return A map containing information to build the paths.
+     */
     public static Map<Integer, Integer> buildPaths(Graph graph, final int start) {
 
         graph.getNodes().forEach((k, node) -> node.setValue(Integer.MAX_VALUE));

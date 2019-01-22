@@ -34,14 +34,14 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>8</source>
-                    <target>10</target>
+                    <target>8</target>
                 </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <archive>
-                        <manifest>
+                        <manifest>-
                             <mainClass>edu.group20.chromflow.TestApp</mainClass>
                         </manifest>
                     </archive>

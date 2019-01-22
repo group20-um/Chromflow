@@ -1,6 +1,9 @@
 package edu.group20.chromflow;
 
-import edu.group20.chromflow.graph.*;
+import edu.group20.chromflow.graph.ChromaticNumber;
+import edu.group20.chromflow.graph.Graph;
+import edu.group20.chromflow.graph.GraphStructures;
+import edu.group20.chromflow.graph.Node;
 import edu.group20.chromflow.util.Mergesort;
 
 import java.util.*;
@@ -8,22 +11,33 @@ import java.util.stream.Collectors;
 
 public class GraphCleaner {
 
-
-
-    public static Result clean(Graph graph) {
+    /**
+     * Cleans the graph by running several algorithms on it.
+     * @param graph The graph to clean.
+     * @return Returns a result class that can contain the chromatic number or better boundss but this is not
+     * guaranteed and heavily depends on the structure of the graph.
+     */
+    public static Result clean(Graph graph, int depth) {
 
         if(graph.isComplete()) {
             TestApp.debug("Cleaning (0ms) >> Detected complete graph.%n");
             return new Result(graph.getNodes().size(), graph.getNodes().size(), graph.getNodes().size());
         }
 
+        // TODO :NothingOfConcern
+        int bestLower = Integer.MIN_VALUE;
+        int bestUpper = Integer.MAX_VALUE;
+        //---
+
         long time = System.currentTimeMillis();
         //removing single nodes
+
         {
             time = System.currentTimeMillis();
-            final double inital_nodes = graph.getNodes().size();
-            final double inital_density = graph.getDensity();
-            final double inital_edges = graph.getEdgeCount();
+            final double initial_nodes = graph.getNodes().size();
+            final double initial_density = graph.getDensity();
+            final double initial_edges = graph.getEdgeCount();
+
 
             // remove singles
             Stack<Integer> singleNodes = graph.getNodes().keySet().stream().filter(id -> graph.getDegree(id) <= 1).collect(Collectors.toCollection(Stack::new));
@@ -46,15 +60,15 @@ public class GraphCleaner {
             TestApp.debug("Cleaning (%dms) >> Removing singles, nodes: %d (%.6f%%), edges: %d (%.6f%%), density: %.6f%% (%.6f%%) %n",
                     (System.currentTimeMillis() - time),
                     graph.getNodes().size(),
-                    (1D - (graph.getNodes().size() / inital_nodes)) * 100,
+                    (1D - (graph.getNodes().size() / initial_nodes)) * 100,
                     graph.getEdgeCount(),
-                    (1D - (graph.getEdgeCount() / inital_edges)) * 100,
+                    (1D - (graph.getEdgeCount() / initial_edges)) * 100,
                     graph.getDensity() * 100,
-                    inital_density * 100
+                    initial_density * 100
             );
 
             //--- Tree
-            if (inital_nodes > 0 && graph.getNodes().isEmpty()) {
+            if (initial_nodes > 0 && graph.getNodes().isEmpty()) {
                 return new Result(2, 2, 2);
             }
         }
@@ -89,12 +103,11 @@ public class GraphCleaner {
                 }
 
                 int exact = Integer.MIN_VALUE;
-                TestApp.OUTPUT_ENABLED = false;
+                Mergesort.sort(smallest, (o1, o2) -> -Integer.compare(o1.getMeta().getLevel(), o2.getMeta().getLevel()));
                 for (Graph g : smallest) {
-                    ChromaticNumber.Result r = ChromaticNumber.computeExact(g, false);
+                    ChromaticNumber.Result r = ChromaticNumber.computeExact(g, true, depth + 1);
                     exact = Math.max(r.getExact() + g.getMeta().getLevel(), exact);
                 }
-                TestApp.OUTPUT_ENABLED = true;
 
                 TestApp.debug("Cleaning (%dms) >> Splitting fully-connected nodes, sub-graphs: %d %n",
                         (System.currentTimeMillis() - time),
@@ -107,119 +120,157 @@ public class GraphCleaner {
             }
         }
 
-        //--- Planar Graphs
-        if(true){
-            // http://www.cs.yale.edu/homes/spielman/561/2009/lect25-09.pdf -> Corollary 25.2.4.
+        //Wheels
+        //TODO seems to be working, better qualifier required
+        if(false && graph.getNodes().size() < 1000) {
             time = System.currentTimeMillis();
-            if (graph.getNodes().size() >= 3) {
-                //  fully-triangulated planar graph
-                if (graph.getEdges().size() == 3 * graph.getNodes().size() - 6) {
-                    TestApp.debug("Cleaning (%dms) >> Graph is fully-triangulated planar graph. %n",
-                            System.currentTimeMillis() - time);
-                    return new Result(-1, 4, -1);
-                } else if ((graph.getEdges().size() <= ((3 * graph.getNodes().size()) - 6)) && GraphStructures.EVBAsed.isPlanar(graph)) {
-                    TestApp.debug("Cleaning (%dms) >> Graph might be planar. %n",
-                            System.currentTimeMillis() - time);
-                    //return new Result(-1, 4, -1);
-                }
-            }
-        }
-
-
-
-        //removing unconnected cliques
-        if(false){
             graph.reset();
-
-            while(true) {
-                List<HashSet<Node>> cliques = new LinkedList<>();
-                cliqueDetector(graph, cliques, new HashSet<>(), new HashSet<>(graph.getNodes().values().stream().filter(e -> e.getValue() == -1).collect(Collectors.toList())), new HashSet<>());
-
-                if (!(cliques.isEmpty())) {
-                    cliques.sort((o1, o2) -> -Integer.compare(o1.size(), o2.size()));
-
-                    HashSet<Node> maxClique = cliques.get(0);
-
-                    if(maxClique.isEmpty()) break;
-
-                    int outsideNeighbours = 0;
-                    for (Node node : maxClique) {
-                        node.setValue(0);
-                        if (graph.getNeighbours(node).size() > maxClique.size() - 1) {
-                            outsideNeighbours += graph.getEdges(node.getId()).size() - maxClique.size() + 1;
-                        }
+            int oddWheels = 0;
+            int evenWheels = 0;
+            boolean brokeEarly = false;
+            for(Node n : graph.getNodes().values()) {
+                final int x = GraphStructures.Test.isWheelCenter(graph, n);
+                if(x > 0) {
+                    if(x % 2 == 0) {
+                        evenWheels++;
+                    } else {
+                        oddWheels++;
                     }
+                }
 
-                    if (outsideNeighbours == 0) {
-                        for (Node n : maxClique) {
-                            System.out.println("remove");
-                            assert null != graph.getNodes().remove(n.getId());
-                            assert graph.getEdges().remove(n.getId()).size() > 0;
-                        }
-                    }
-
-                    TestApp.debugln("outside neighbours >> " + outsideNeighbours);
-                    //TestApp.debugln("pivot >> " + ChromaticNumber.bronKerboschWithPivot(graph, new HashSet<>(), new HashSet<>(graph.getNodes().values()), new HashSet<>()));
-                } else {
-                    TestApp.debugln("[1]");
+                if(evenWheels > 0) {
+                    brokeEarly = true;
                     break;
                 }
             }
+            TestApp.debug("Cleaning (%dms) >> Wheels, even: %s (%d), odd: %s (%d), broke early: %s%n",
+                    (System.currentTimeMillis() - time),
+                    evenWheels > 0,
+                    evenWheels,
+                    oddWheels > 0,
+                    oddWheels,
+                    brokeEarly
+            );
+            if(oddWheels + evenWheels > 0) {
+                bestLower = Math.max(bestLower, evenWheels > 0 ? 4 : 3);
+            }
+        } else {
+            TestApp.debugln("Cleaner >> WHEELS CHECK IS DISABLED");
         }
 
-        // finding communities
-        if(true && graph.getMeta().getLevel() == -1) {
+        //is k-regular
+        {
+            time = System.currentTimeMillis();
+
+            LinkedList<Map<Integer, Node.Edge>> values = new LinkedList<>(graph.getEdges().values());
+            int kRegular = values.get(0).size();
+            for (int i = 1; i < values.size() && kRegular != -1; i++) {
+                if(values.get(i).size() != kRegular) {
+                    kRegular = -1;
+                }
+            }
+
+            TestApp.debug("Cleaning (%dms) >> k-regular, k: %s%n",
+                    (System.currentTimeMillis() - time),
+                    (kRegular == -1 ? "NA" : String.valueOf(kRegular))
+            );
+
+            /**
+             * This segment is based on two theorems from this paper
+             *  Brandes algorithm [PDF]. (n.d.). Retrieved from https://www.cl.cam.ac.uk/teaching/1617/MLRD/handbook/brandes.pdf
+             *   I Theory 3.8 states that every one-connectivity and k-regular graph has k as its chromatic number
+             *   II Theory 3.9 states that every two-connectivity and k-regular graph has k as its upper-bound
+             */
+            if(kRegular != -1 && GraphStructures.Test.isConnected(graph)) {
+                time = System.currentTimeMillis();
+                if(GraphStructures.Connectivity.OneConnectivity.check(graph)) {
+                    TestApp.debug("Cleaning (%dms) > k-regular, one-connectivity",
+                            (System.currentTimeMillis() - time)
+                    );
+                    return new Result(kRegular, kRegular, kRegular);
+                } else if(GraphStructures.Connectivity.TwoConnectivity.check(graph)) {
+                    bestUpper = Math.min(bestUpper, kRegular);
+                    TestApp.debug("Cleaning (%dms) > k-regular, two-connected%n",
+                            (System.currentTimeMillis() - time)
+                    );
+                }
+            }
+
+        }
+
+        // disconnect graph at points
+        {
             time = System.currentTimeMillis();
             graph.reset();
-            LinkedList<Node> nodes = new LinkedList<>(graph.getNodes().values());
-            Map<Integer, Double> score = new HashMap<>();
-            double maxScore = Double.MIN_VALUE;
-            for(Node n : graph.getNodes().values()) {
-                graph.reset();
-                Map<Integer, Integer> previous = Dijkstra.buildPaths(graph, n.getId());
+            Set<Node> points = GraphStructures.Connectivity.Points.getArticulationPoints(graph);
 
-                for(int prev : previous.values()) {
-                    final double v = score.getOrDefault(prev, 0D) + 1;
-                    maxScore = Math.max(v, maxScore);
-                    score.put(prev, v);
-                }
-            }
-            for (Map.Entry<Integer, Double> entry : score.entrySet()) {
-                score.put(entry.getKey(), (entry.getValue() / maxScore));
-            }
-            nodes = Mergesort.sort(nodes, (o1, o2) -> -Double.compare(score.getOrDefault(o1.getId(), 0D), score.getOrDefault(o2.getId(), 0D)));
-            for(int i = 0; i < 10; i++) {
-                Node a = nodes.get(i);
-                for(int x = 0; x < 10; x++) {
-                    Node b = nodes.get(x);
-                    if(graph.hasEdge(a.getId(), b.getId())) {
-                        graph.getEdges(a.getId()).remove(b.getId());
-                        graph.getEdges(b.getId()).remove(a.getId());
+            List<Graph> smallest = new LinkedList<>();
+
+            if(!(points.isEmpty())) {
+
+                graph.reset();
+                for (Node p : points) {
+                    p.setValue(1);
+                    LinkedList<Graph> subgraphs = new LinkedList<>();
+                    for (Node n : graph.getNodes().values()) {
+                        if (n.getValue() == -1) {
+                            subgraphs.add(discoverGraph(graph, n));
+                        }
+                    }
+
+                    if (subgraphs.size() <= 1) {
+                        p.setValue(-1);
+                    } else {
+                        smallest.addAll(subgraphs);
                     }
                 }
-            }
 
-            LinkedList<Graph> sub = new LinkedList<>();
-            graph.reset();
-            for (Node node : graph.getNodes().values()) {
-                // n.v != -1 means that it already belongs to another subgraph so we can skip it
-                if (node.getValue() != -1) continue;
-                sub.add(discoverGraph(graph, node));
-            }
+                if(!smallest.isEmpty()) {
+                    int max = Integer.MIN_VALUE;
+                    for (Graph sub : smallest) {
+                        ChromaticNumber.Result r = ChromaticNumber.computeExact(sub, true, depth + 1);
+                        max = Math.max(max, r.getExact());
+                    }
 
-            for(Graph g : sub) {
-                g.getMeta().setLevel(1);
-                System.out.println(ChromaticNumber.computeExact(g, true));
+                    TestApp.debug("Cleaning (%dms) > articulation points, sub-graphs: %d, points: %d%n",
+                            (System.currentTimeMillis() - time),
+                            smallest.size(),
+                            points.size()
+                    );
+                    return new Result(max, max, max);
+                }
+            } else {
+                TestApp.debug("Cleaning (%dms) > articulation points, sub-graphs: 0, points: 0%n",
+                        (System.currentTimeMillis() - time),
+                        smallest.size(),
+                        points.size()
+                );
             }
-            GephiConverter.generateGephiFile(graph, "graph_test_communities");
-            TestApp.debug("Sort nodes by k-shortest-path (%dms) >> Done%n", (System.currentTimeMillis() - time));
         }
 
 
-        return new Result(-1, -1, -1);
+        // TODO :NothingOfConcern
+        if(bestLower != Integer.MIN_VALUE && bestUpper != Integer.MAX_VALUE) {
+            if(bestLower == bestUpper) {
+                return new Result(bestLower, bestUpper, bestLower);
+            } else {
+                return new Result(bestLower, bestUpper, -1);
+            }
+        } else if(bestLower != Integer.MIN_VALUE) {
+            return new Result(bestLower, -1, -1);
+        } else if(bestUpper != Integer.MAX_VALUE) {
+            return new Result(-1, bestUpper, -1);
+        } else{
+            return new Result(-1, -1, -1);
+        }
     }
 
-
+    /**
+     * Tries to split the given graphs into smaller subgraphs at a fully-connected nodes.
+     * @param subgraphs The list that will contain the subgraphs of the graph.
+     * @param graph The graph to divide.
+     * @return Whether or not it could be further divided.
+     */
     private static boolean divider(LinkedList<Graph> subgraphs, Graph graph) {
 
         if(graph.getNodes().size() == 1) {
@@ -251,7 +302,13 @@ public class GraphCleaner {
         return (subgraphs.size() > subSize);
     }
 
-    private static Graph discoverGraph(Graph og, Node origin) {
+    /**
+     * Builds a new graph by running a DFS from the origin node and marks all visited nodes with the value '0'.
+     * @param og Th original graph.
+     * @param origin The node to start at.
+     * @return The new graph builds outgoing from the origin node.
+     */
+    public static Graph discoverGraph(Graph og, Node origin) {
 
         // create a new graph
         Graph newGraph = new Graph();
@@ -279,41 +336,6 @@ public class GraphCleaner {
         }
 
         return newGraph;
-    }
-
-    private static void cliqueDetector(Graph graph, List<HashSet<Node>> cliques, HashSet<Node> _R, HashSet<Node> _P, HashSet<Node> _X) {
-        if (_P.isEmpty() && _X.isEmpty()) {
-            cliques.add(_R);
-        }
-
-        Iterator<Node> nodeIterator = _P.iterator();
-        while (nodeIterator.hasNext()) {
-
-            //---
-            Node node = nodeIterator.next();
-            List<Node> neighbours = graph.getEdges(node.getId()).values()
-                    .stream()
-                    .filter(e -> e.getTo().getValue() == -1)
-                    .map(Node.Edge::getTo).collect(Collectors.toList());
-
-            //---
-            HashSet<Node> dR = new HashSet<>(_R);
-            dR.add(node);
-
-            HashSet<Node> dP = _P.stream()
-                    .filter(e -> e.getValue() == -1)
-                    .filter(neighbours::contains).collect(Collectors.toCollection(HashSet::new));
-            HashSet<Node> dX = _X.stream()
-                    .filter(e -> e.getValue() == -1)
-                    .filter(neighbours::contains).collect(Collectors.toCollection(HashSet::new));
-
-            cliqueDetector(graph, cliques, dR, dP, dX);
-
-            //---
-            nodeIterator.remove();
-            _X.add(node);
-        }
-
     }
 
     public static class Result {

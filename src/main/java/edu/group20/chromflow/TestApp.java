@@ -2,26 +2,18 @@ package edu.group20.chromflow;
 
 import edu.group20.chromflow.graph.ChromaticNumber;
 import edu.group20.chromflow.graph.Graph;
-import edu.group20.chromflow.util.GraphReader;
+import edu.group20.chromflow.misc.GraphReader;
 
 public class TestApp {
 
-    public final static boolean GOD_KELK_MODE = false;
+    public final static boolean GOD_KELK_MODE = true;
     public static boolean OUTPUT_ENABLED = true;
+    public static boolean FORCE_OUTPUT = false;
 
     public static void main(String[] args) {
-
-        //TODO Current profile runs with GC disabled!!!
-        //2,3,4,7,9,
-        // planar, very high chance, 13,14,
-        // planar graph: 13, 14, 16
-        // 15,
-
-        //graph04.txt breaks isPlanar
-        args = new String[] {"src/main/java/data/block3/block3_2018_graph04.txt"};
+        args = new String[] {"src/main/java/data/block3/block3_2018_graph05.txt"};
         Graph graph = GraphReader.parseGraph(args[0]);
-
-        debug("Result>> %s%n", ChromaticNumber.computeExact(graph, true));
+        debug("Result>> %s%n", ChromaticNumber.computeExact(graph, true, 0));
 
     }
 

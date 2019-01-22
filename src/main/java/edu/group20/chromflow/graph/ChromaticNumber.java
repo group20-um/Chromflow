@@ -10,31 +10,48 @@ import java.util.stream.Collectors;
 public class ChromaticNumber {
 
     /**
-     * Computes the requested data.
-     * @param graph The graph we want to perform the computations on.
-     * @return Never null, always a result.
+     * Computes the exact chromatic number for the given graph.
+     * @param graph The graph to perform the computations on.
+     * @param clean Whether or not the graph should be cleaned which could lead to discovery of certain structures that
+     *              could be exploited to improve runtime.
+     * @param depth We do not want output from the recursive calls of this method, so if we increase the level > 0 then
+     *              we don't get any. This is basically for the tournament output.
+     * @return Never null, a class containing bounds and the exact chromatic number
      */
-    public static Result computeExact(Graph graph, boolean clean) {
+    public static Result computeExact(Graph graph, boolean clean, int depth) {
+
+        // TODO only for the tournament, maybe not... maybe it is a good idea to do this always. currently we
+        //  are doing the same work twice...
+        if(TestApp.GOD_KELK_MODE) {
+            int upper = upperBoundIterative(graph, UpperBoundMode.SUPERMAN);
+            int lower = graph.getEdges().isEmpty() ? 1 : 2;
+            if(upper > 4 || graph.getEdgeCount() < 100_000) {
+                lower = lowerBound(graph, upper);
+            }
+            TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", upper);
+            TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
+
+            if(lower == upper) {
+                TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
+                return new Result(graph, lower, lower, lower, true);
+            }
+        }
+
         graph.reset();
-        final GraphCleaner.Result cleanResult = clean ? GraphCleaner.clean(graph) : new GraphCleaner.Result(-1, -1, -1);
-        return exactTest(graph, cleanResult, false);
+        TestApp.OUTPUT_ENABLED = depth == 0 || TestApp.FORCE_OUTPUT;
+        final GraphCleaner.Result cleanResult = clean ? GraphCleaner.clean(graph, depth) : new GraphCleaner.Result(-1, -1, -1);
+        TestApp.OUTPUT_ENABLED = depth == 0 || TestApp.FORCE_OUTPUT;
+        return exactTest(graph, cleanResult);
     }
 
     /**
-     * The basic lower bound checks returns the least amount of connections that can be found in the graph. If the least-amount
-     * is only 1 then it will return 2, because there will be at least 2 nodes which means they require at least 2 different
-     * colours.
-     * @param graph The graph to perform the computation on.
-     * @return The lower bound.
+     * The main method responsible for computing upper and lower bounds on the given graph and then finally testing
+     * inside the bounds for the chromatic number.
+     * @param graph The graph to check.
+     * @param cleanResult Possible results from the {@link GraphCleaner#clean(Graph,int)} method.
+     * @return Never null, a class containing bounds and the exact chromatic number.
      */
-    private static int basicLowerBound(Graph graph) {
-        int tmp = graph.getEdges().entrySet().stream().mapToInt(e -> e.getValue().size()).min().getAsInt();
-        return Math.max(tmp,2) ;
-    }
-
-
-    // --- EXACT_EXPERIMENTAL SECTION ---
-    private static Result exactTest(Graph graph, GraphCleaner.Result cleanResult, boolean runTimeBound) {
+    private static Result exactTest(Graph graph, GraphCleaner.Result cleanResult) {
 
         // This can happen when GraphCleaner breaks down a fully-connected graph
         if(graph.getNodes().size() == 1) {
@@ -50,48 +67,29 @@ public class ChromaticNumber {
 
         //---
         long time = System.currentTimeMillis();
-        int upper = cleanResult.getUpper();
-        if (!cleanResult.hasUpper()) {
-            upper = upperBound(graph, UpperBoundMode.SUPERMAN);
-            /* TODO research speed and benefits
-            if(graph.getNodes().size() > 1000) {
-                upper = upperBound(graph, UpperBoundMode.DEGREE_DESC);
-            } else {
-                upper = Integer.MAX_VALUE;
-                for(int i = 0; i < graph.getNodes().size(); i++) {
-                    upper = upperBound(graph, UpperBoundMode.SHUFFLE);
-                }
-            }*/
-            TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
-        } else {
-            TestApp.debug("Upper bound (0ms) >> %d, calculated by clean()%n", upper);
+        graph.reset();
+        int upper = upperBoundIterative(graph, UpperBoundMode.SUPERMAN);
+        if(cleanResult.hasUpper()) {
+             upper = Math.min(cleanResult.getUpper(), upper);
         }
+        TestApp.debug("Upper bound (%dms) >> %d%n", (System.currentTimeMillis() - time), upper);
         TestApp.kelkOutput("NEW BEST UPPER BOUND = %d%n", upper);
 
-        int lower = cleanResult.getLower();
-        if(!(cleanResult.hasLower())) {
-            lower = graph.getEdges().isEmpty() ? 1 : 2;
-            TestApp.debug("Lower bound (0ms) >> %d%n", lower);
-        } else {
-            TestApp.debug("Lower bound (0ms) >> %d%n, calculated by clean()", lower);
-        }
+        int lower = Math.max(cleanResult.getLower(), graph.getEdges().isEmpty() ? 1 : 2);
+        TestApp.debug("Lower bound (0ms) >> %d%n", lower);
         TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
         if (upper == lower) {
             TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
             TestApp.debug("<Exact Test>>> Exact: %d%n", lower);
             return new Result(graph, upper, upper, upper, true);
-        } else if((upper > 4 || graph.getNodes().size() < 1000) && !cleanResult.hasLower()) {
+        } else if((upper > 4 || graph.getNodes().size() < 1000)) {
             graph.reset();
             time = System.currentTimeMillis();
-            lower = lowerBound(graph, upper);
+            lower = Math.max(lower, lowerBound(graph, upper));
             TestApp.debug("Lower bound (%dms) >> %d%n", (System.currentTimeMillis() - time), lower);
             TestApp.kelkOutput("NEW BEST LOWER BOUND = %d%n", lower);
 
-            // TODO that should never happen, so why is this here?
-            if (lower > upper) {
-                lower = graph.getEdges().isEmpty() ? 1 : 2;
-            }
 
             if (upper == lower) {
                 TestApp.kelkOutput("CHROMATIC NUMBER = %d%n", lower);
@@ -188,6 +186,13 @@ public class ChromaticNumber {
         return new Result(result, exact, lower, upper, true);
     }
 
+    /**
+     * Checks if the graph can be coloured with the given ammount of colours.
+     * @param graph The graph to colour.
+     * @param nodes All the nodes to colour. The method respects and follows the order of this list.
+     * @param colours The max amount of colours allowed.
+     * @return Whether or not the max amount of colours is sufficient to colour the graph.
+     */
     private static boolean exact(Graph graph, List<Node> nodes, int colours) {
 
         if(graph.getNodes().size() <= colours) {
@@ -299,13 +304,6 @@ public class ChromaticNumber {
     }
 
     /**
-     * Runs and returns {@link ChromaticNumber#upperBoundIterative(Graph,UpperBoundMode)}.
-     */
-    private static int upperBound(Graph graph, UpperBoundMode mode) {
-        return upperBoundIterative(graph, mode);
-    }
-
-    /**
      * Colours the graph with the greedy-algorithm. - It simply goes to every node and at every node it checks
      * if it can just reuse a colour to colour the node, or if it has to create a new colour.
      * @param graph The graph to perform the computation on.
@@ -404,11 +402,28 @@ public class ChromaticNumber {
     }
 
     //--- LOWER BOUND --
+
+    /**
+     * Wrapper method for {@link ChromaticNumber#bronKerboschWithPivot(Graph, HashSet, HashSet, HashSet, int)}.
+     * @param graph The graph to run the algorithm on.
+     * @param upperBound A precomputed upper-bound as a break conidition.
+     * @return A lower bound for the chromatic number based on the max clique size.
+     */
     private static int lowerBound(Graph graph, int upperBound) {
         return bronKerboschWithPivot(graph, new HashSet<>(), new HashSet<>(graph.getNodes().values()), new HashSet<>(), upperBound);
     }
 
-    public static int bronKerboschWithPivot(Graph graph, HashSet<Node> _R, HashSet<Node> _P, HashSet<Node> _X, final int upperBound) {
+    /**
+     * The method runs through the graph and gives back a list with all the cliques
+     * within the graph
+     * @param graph the considered graph
+     * @param _R set of current Nodes in the clique
+     * @param _P set of candidate Nodes
+     * @param _X set of excluded Nodes
+     * @param upperBound upperBound used as a break condition
+     * @return The size of the biggest clique in the given graph.
+     **/
+    private static int bronKerboschWithPivot(Graph graph, HashSet<Node> _R, HashSet<Node> _P, HashSet<Node> _X, final int upperBound) {
         int max = Integer.MIN_VALUE;
         if(_P.isEmpty() && _X.isEmpty()) {
             max = Math.max(max, _R.size());
@@ -486,26 +501,38 @@ public class ChromaticNumber {
             this.isReady = isReady;
         }
 
+        /**
+         * Might return a coloured graph, not guaranteed.
+         * @return
+         */
         public Graph getSolution() {
             return solution;
         }
 
-        public void ready() {
-            this.isReady = true;
-        }
-
+        /**
+         * @return True, if result contains a valid result.
+         */
         public boolean isReady() {
             return isReady;
         }
 
+        /**
+         * @return The chromatic number.
+         */
         public int getExact() {
             return exact;
         }
 
+        /**
+         * @return A lower bound on the chromatic number.
+         */
         public int getLower() {
             return lower;
         }
 
+        /**
+         * @return An upper bound on the chromatic number.
+         */
         public int getUpper() {
             return upper;
         }

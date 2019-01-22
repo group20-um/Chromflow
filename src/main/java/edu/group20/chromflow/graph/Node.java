@@ -1,10 +1,17 @@
 package edu.group20.chromflow.graph;
 
+/**
+ * A node represents a vertex in a graph.
+ */
 public class Node {
 
     private final int id;
     private int value;
 
+    /**
+     * @param id The unique id of the node.
+     * @param value The associated value.
+     */
     public Node(int id, int value) {
         this.id = id;
         this.value = value;
@@ -22,6 +29,9 @@ public class Node {
         this.value = value;
     }
 
+    /**
+     * Represents the edge between two Nodes.
+     */
     public static class Edge {
 
         private Node from;
@@ -42,4 +52,8 @@ public class Node {
 
     }
 
+    @Override
+    public String toString() {
+        return String.format("[Node;id=%d,value=%d]", this.id, this.value);
+    }
 }

@@ -1,11 +1,15 @@
 package edu.group20.chromflow.util;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-// Code heavily inspired by https://www.geeksforgeeks.org/merge-sort/ and only upgraded
-// to suit our requirements
+/**
+ * Code heavily inspired by https://www.geeksforgeeks.org/merge-sort/ and only upgraded to suit our requirements, and to
+ * be compatible with all possible objects in Java.
+ */
 public class Mergesort {
 
     private static <T> void merge(Comparator<T> comparator, T[] array, int l, int m, int r)  {

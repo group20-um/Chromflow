@@ -1,4 +1,4 @@
-package edu.group20.chromflow.util;
+package edu.group20.chromflow.misc;
 
 import edu.group20.chromflow.TestApp;
 import edu.group20.chromflow.graph.Graph;
@@ -6,9 +6,11 @@ import edu.group20.chromflow.graph.Graph;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Reads in the graph.
+ */
 public class GraphReader {
 
     public static Graph parseGraph(final String path) {
